@@ -10,7 +10,7 @@ The UI boots on anonymous **sample bots** (`fixtures/warehouse-sample.json`). Co
 | [`local`](./docs/LOCAL.md) | Laptop installer (`scripts/install-local.sh`). |
 | [`desktop`](./docs/DESKTOP.md) | Electron window + Linux AppImage / tarball. |
 
-Default branch is `vercel`.
+You are on the **local installer** branch.
 
 ## What was stripped
 
