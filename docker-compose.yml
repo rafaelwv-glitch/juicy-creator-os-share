@@ -1,0 +1,29 @@
+# Local Postgres 16 for Juicy Creator OS.
+# Does not affect Vercel / Neon — only used when you point DATABASE_URL here.
+#
+#   npm run db:up
+#   npm run db:migrate
+#   npm run dev:local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: juicy-creator-os-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: juicy
+      POSTGRES_PASSWORD: juicy
+      POSTGRES_DB: juicy
+    ports:
+      - "5432:5432"
+    volumes:
+      - juicy_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U juicy -d juicy"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  juicy_pg_data:

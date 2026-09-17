@@ -1,0 +1,52 @@
+# Local installer (Linux)
+
+Run the creator dashboard on a laptop. No cloud account. No Docker required (PGLite file DB is the default).
+
+## Install
+
+```bash
+git clone https://github.com/rafaelwv-glitch/juicy-creator-os-share.git
+cd juicy-creator-os-share
+git checkout local
+bash scripts/install-local.sh
+```
+
+The script checks Node 22+, installs deps, writes `.env.local` with auth off, seeds the sample warehouse, and prints the start command.
+
+## Start
+
+```bash
+npm run dev:local
+```
+
+Open http://127.0.0.1:8080 — you should see **SampleCreator**.
+
+Stop with Ctrl+C.
+
+## Optional Postgres
+
+```bash
+# .env.local
+# DATABASE_URL=postgres://juicy:juicy@localhost:5432/juicy
+npm run db:up
+npm run db:migrate
+npm run dev:local
+```
+
+Leave `DATABASE_URL` unset unless you also turn auth on. This clone keeps auth off, so the shared `dev-user` must not sit on a shared Postgres.
+
+## Import your own warehouse
+
+Export JSON from a private install, then:
+
+```bash
+npm run db:import-warehouse -- ~/Downloads/juicy-lounge-warehouse-YYYYMMDD.json
+```
+
+Never commit that file.
+
+## Smoke
+
+```bash
+npm run smoke
+```

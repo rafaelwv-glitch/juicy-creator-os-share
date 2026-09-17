@@ -1,0 +1,25 @@
+name: Desktop packages
+on:
+  push:
+    tags: ["v*"]
+    branches: [desktop]
+  workflow_dispatch:
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: juicy-creator-os-linux
+          path: |
+            release/*.AppImage
+            release/*.tar.gz
+          if-no-files-found: error
