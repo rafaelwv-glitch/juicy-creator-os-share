@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import sampleWarehouse from "./sample-warehouse.json";
 import { analyzeGrowth, recordAndAnalyze, seedHistoryFromSnapshot, dayKey } from "./history";
 import { scrapeCreatorInsights, loadCreatorInsights } from "./insights";
 import { analyzeTiming, scrapeNotifications, loadNotifStore } from "./notifications";
@@ -61,18 +62,26 @@ const TAG_FILE = "tag-competition.json";
 export function seedSampleWarehouseIfEmpty(): void {
   try {
     if (existsSync(dataPath("last-snapshot.json"))) return;
-    const fixture = join(process.cwd(), "fixtures", "warehouse-sample.json");
-    if (!existsSync(fixture)) return;
-    const raw = JSON.parse(readFileSync(fixture, "utf8")) as {
-      files?: Record<string, unknown>;
-    };
-    ensureDataDir();
-    for (const [name, body] of Object.entries(raw.files || {})) {
-      if (!name.endsWith(".json") || name.includes("..") || name.includes("/")) continue;
-      writeFileSync(dataPath(name), JSON.stringify(body));
+    const raw = sampleWarehouse as { files?: Record<string, unknown> };
+    const files = raw.files && typeof raw.files === "object" ? raw.files : null;
+    if (!files) {
+      const fixture = join(process.cwd(), "fixtures", "warehouse-sample.json");
+      if (!existsSync(fixture)) return;
+      const disk = JSON.parse(readFileSync(fixture, "utf8")) as { files?: Record<string, unknown> };
+      writeSeedFiles(disk.files || {});
+      return;
     }
+    writeSeedFiles(files);
   } catch {
     /* sample seed is best-effort */
+  }
+}
+
+function writeSeedFiles(files: Record<string, unknown>): void {
+  ensureDataDir();
+  for (const [name, body] of Object.entries(files)) {
+    if (!name.endsWith(".json") || name.includes("..") || name.includes("/")) continue;
+    writeFileSync(dataPath(name), JSON.stringify(body));
   }
 }
 

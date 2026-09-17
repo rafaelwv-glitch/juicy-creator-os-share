@@ -1,0 +1,174 @@
+{
+  "format": "juicy-lounge-warehouse",
+  "version": "1.6.0",
+  "exportedAt": "2026-09-01T12:00:00.000Z",
+  "timezone": "Europe/Madrid",
+  "credentials": false,
+  "account": {
+    "userId": "sample-juicy-user",
+    "userName": "SampleCreator",
+    "userNo": "1001"
+  },
+  "manifest": {
+    "bots": 2,
+    "historyDays": 2,
+    "events": 1,
+    "forensicBots": 1,
+    "forensicDayRows": 1,
+    "followerPoints": 2,
+    "rivalCount": 0,
+    "rivalAlumni": 0,
+    "rivalMrtDays": 0,
+    "newFeedBots": 0,
+    "newFeedDays": 0,
+    "newFeedAt": null,
+    "keys": [
+      "bot-forensics.json",
+      "followers-history.json",
+      "growth-history.json",
+      "last-snapshot.json",
+      "notification-events.json"
+    ],
+    "snapshotAt": "2026-09-01T11:00:00.000Z",
+    "insightsAt": null,
+    "dashboardAt": null,
+    "ranklistAt": null,
+    "forensicsAt": "2026-09-01T11:00:00.000Z"
+  },
+  "files": {
+    "last-snapshot.json": {
+      "scrapedAt": "2026-09-01T11:00:00.000Z",
+      "authenticated": false,
+      "userId": "sample-juicy-user",
+      "profile": {
+        "userId": "sample-juicy-user",
+        "userName": "SampleCreator",
+        "userNo": "1001",
+        "characterCount": 2,
+        "chatCount": 12,
+        "likeCount": 4,
+        "favoriteCount": 1,
+        "followersCount": 3
+      },
+      "space": null,
+      "stats": null,
+      "benefit": null,
+      "ownCharacterData": null,
+      "bots": [
+        {
+          "characterId": "1000000000000000001",
+          "characterName": "Sample Bot One",
+          "chatCount": 8,
+          "likeCount": 3,
+          "favoriteCount": 1,
+          "visibility": 1,
+          "characterTags": ["slice-of-life"]
+        },
+        {
+          "characterId": "1000000000000000002",
+          "characterName": "Sample Bot Two",
+          "chatCount": 4,
+          "likeCount": 1,
+          "favoriteCount": 0,
+          "visibility": 1,
+          "characterTags": ["mystery"]
+        }
+      ],
+      "totals": {
+        "bots": 2,
+        "publicBots": 2,
+        "unlistedBots": 0,
+        "privateBots": 0,
+        "chats": 12,
+        "likes": 4,
+        "favorites": 1,
+        "followers": 3,
+        "interactions": 17
+      },
+      "warnings": [],
+      "source": "cache"
+    },
+    "growth-history.json": {
+      "version": 1,
+      "timezone": "Europe/Madrid",
+      "days": [
+        {
+          "date": "2026-08-31",
+          "scrapedAt": "2026-08-31T22:00:00.000Z",
+          "totals": {
+            "chats": 10,
+            "likes": 3,
+            "favorites": 1,
+            "interactions": 14,
+            "followers": 3,
+            "bots": 2
+          },
+          "bots": {}
+        },
+        {
+          "date": "2026-09-01",
+          "scrapedAt": "2026-09-01T11:00:00.000Z",
+          "totals": {
+            "chats": 12,
+            "likes": 4,
+            "favorites": 1,
+            "interactions": 17,
+            "followers": 3,
+            "bots": 2
+          },
+          "bots": {}
+        }
+      ]
+    },
+    "notification-events.json": {
+      "version": 1,
+      "timezone": "Europe/Madrid",
+      "events": [
+        {
+          "messageId": "sample-event-1",
+          "ts": 1756724400000,
+          "kind": "like",
+          "characterName": "Sample Bot One"
+        }
+      ],
+      "lastScrapedAt": "2026-09-01T11:00:00.000Z",
+      "lastApiTotal": 1,
+      "pagesFetched": 1,
+      "lookbackDays": 30
+    },
+    "followers-history.json": {
+      "version": 1,
+      "timezone": "Europe/Madrid",
+      "points": [
+        {
+          "date": "2026-08-31",
+          "scrapedAt": "2026-08-31T22:00:00.000Z",
+          "count": 3,
+          "source": "sample"
+        },
+        {
+          "date": "2026-09-01",
+          "scrapedAt": "2026-09-01T11:00:00.000Z",
+          "count": 3,
+          "source": "sample"
+        }
+      ],
+      "sample": [],
+      "last": {
+        "date": "2026-09-01",
+        "scrapedAt": "2026-09-01T11:00:00.000Z",
+        "count": 3,
+        "source": "sample"
+      },
+      "sources": {}
+    },
+    "bot-forensics.json": {
+      "lastIngestAt": "2026-09-01T11:00:00.000Z",
+      "bots": {
+        "1000000000000000001": {
+          "days": [{ "date": "2026-09-01", "chats": 8 }]
+        }
+      }
+    }
+  }
+}

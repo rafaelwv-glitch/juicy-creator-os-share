@@ -140,5 +140,7 @@
       "maintainer": "Juicy Creator OS contributors"
     },
     "asar": false
-  }
+  },
+  "version": "1.0.0",
+  "main": "desktop/main.mjs"
 }
