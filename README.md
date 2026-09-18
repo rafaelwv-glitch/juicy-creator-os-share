@@ -6,7 +6,7 @@ The UI boots on anonymous **sample bots** (`fixtures/warehouse-sample.json`). Co
 
 | Branch | What it is |
 | --- | --- |
-| [`vercel`](./docs/VERCEL.md) | Hosted web app. One-click Vercel deploy. |
+| [`vercel`](./docs/VERCEL.md) | Hosted web app. One-click Vercel deploy. **Disable Vercel Authentication** or JuicyChat connect 401s. |
 | [`local`](./docs/LOCAL.md) | Laptop installer (`scripts/install-local.sh`). |
 | [`desktop`](./docs/DESKTOP.md) | Electron window + Linux AppImage / tarball + Windows exe. |
 

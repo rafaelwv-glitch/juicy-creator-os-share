@@ -43,7 +43,7 @@ export async function postCloudRefresh(): Promise<CloudRefreshResult> {
     throw new Error(
       data.error && data.error !== "Unauthorized"
         ? data.error
-        : "Unauthorized — sign in on this browser, or re-pair the app so the device token is sent.",
+        : "Unauthorized — this Vercel deploy is blocking the scrape (turn off Deployment Protection). Then connect JuicyChat on Config; do not use /login.",
     );
   }
   return {
