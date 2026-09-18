@@ -471,14 +471,14 @@ function TimingDashboard() {
                     </span>
                   </div>
                   <div className="space-y-2">
-                    {selectedTag.bestSlots.map((slot, i) => (
+                    {selectedTag.bestSlots?.map((slot, i) => (
                       <SlotRow key={slot.label} slot={slot} rank={i + 1} />
                     ))}
                   </div>
                   <div className="h-40">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        data={selectedTag.byHour.map((total, hour) => ({
+                        data={(selectedTag.byHour || []).map((total, hour) => ({
                           hour,
                           label: String(hour).padStart(2, "0"),
                           total,
@@ -494,11 +494,11 @@ function TimingDashboard() {
                         <YAxis tick={{ fill: "#5c618f", fontSize: 10 }} width={32} />
                         <Tooltip contentStyle={tooltipStyle} />
                         <Bar dataKey="total" fill="#8b7cff" radius={[3, 3, 0, 0]}>
-                          {selectedTag.byHour.map((_, i) => (
+                          {(selectedTag.byHour || []).map((_, i) => (
                             <Cell
                               key={i}
                               fill={
-                                i === selectedTag.bestSlots[0]?.hour ? "#ff6bb5" : "#8b7cff"
+                                i === selectedTag.bestSlots?.[0]?.hour ? "#ff6bb5" : "#8b7cff"
                               }
                             />
                           ))}
@@ -541,10 +541,12 @@ function TimingDashboard() {
                             </span>
                           </td>
                           <td className="py-2.5 text-xs text-muted">
-                            {t.bestSlots
-                              .slice(0, 2)
-                              .map((s) => s.label)
-                              .join(" · ") || "—"}
+                          {Array.isArray(t.bestSlots)
+                            ? t.bestSlots
+                                .slice(0, 2)
+                                .map((s) => s.label)
+                                .join(" · ") || "—"
+                            : "—"}
                           </td>
                         </tr>
                       ))}
@@ -593,12 +595,14 @@ function TimingDashboard() {
                             {b.characterName}
                           </div>
                           <div className="font-mono text-[10px] text-faint">
-                            {b.characterId.slice(0, 12)}…
+                            {String(b.characterId || "unknown").slice(0, 12)}…
                           </div>
                         </td>
                         <td className="py-2.5 pr-3">
                           <div className="flex max-w-[180px] flex-wrap gap-1">
-                            {(b.tags.length ? b.tags : ["—"]).slice(0, 4).map((t) => (
+                            {(Array.isArray(b.tags) && b.tags.length ? b.tags : ["—"])
+                              .slice(0, 4)
+                              .map((t) => (
                               <span
                                 key={t}
                                 className="rounded-md bg-elevated px-1.5 py-0.5 text-[10px] text-muted"
@@ -618,7 +622,7 @@ function TimingDashboard() {
                           {formatNum(b.total)}
                         </td>
                         <td className="py-2.5 text-xs text-muted">
-                          {b.bestSlots
+                          {(Array.isArray(b.bestSlots) ? b.bestSlots : [])
                             .slice(0, 3)
                             .map(
                               (s) =>
@@ -739,7 +743,7 @@ function SlotRow({ slot, rank }: { slot: SlotScore; rank: number }) {
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium">{slot.label}</div>
         <div className="text-[10px] text-faint">
-          score {slot.score.toFixed(1)} · {slot.likes} likes · {slot.favorites} favs
+          score {Number(slot.score || 0).toFixed(1)} · {slot.likes ?? 0} likes · {slot.favorites ?? 0} favs
         </div>
       </div>
       <span className="tabular-nums text-sm font-semibold text-fg">{slot.total}</span>

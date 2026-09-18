@@ -293,7 +293,12 @@ export function repairSnapshot(
 }
 
 export type NotifLike = {
-  events?: Array<{ messageId?: string; ts?: number }>;
+  events?: Array<{
+    messageId?: string;
+    ts?: number;
+    characterId?: string;
+    characterName?: string;
+  }>;
   lastScrapedAt?: string | null;
   [k: string]: unknown;
 };
@@ -302,10 +307,13 @@ export function repairNotifs<T extends NotifLike>(store: T): T {
   const events = Array.isArray(store.events) ? store.events : [];
   const map = new Map<string, (typeof events)[number]>();
   for (const e of events) {
-    const id = e?.messageId ? String(e.messageId) : "";
+    if (!e || typeof e !== "object") continue;
+    const id = e.messageId != null && String(e.messageId).trim() ? String(e.messageId) : "";
     if (!id) continue;
+    const characterId = String(e.characterId || e.characterName || "unknown");
+    const patched = { ...e, messageId: id, characterId };
     const prev = map.get(id);
-    if (!prev || (e.ts || 0) >= (prev.ts || 0)) map.set(id, e);
+    if (!prev || (patched.ts || 0) >= (prev.ts || 0)) map.set(id, patched);
   }
   const next = [...map.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
   return { ...store, events: next };
