@@ -123,6 +123,10 @@
     },
     "files": [
       "**/*",
+      {
+        "from": "node_modules/nitro/dist/node_modules",
+        "to": "node_modules/nitro/dist/node_modules"
+      },
       "!release/**",
       "!data/**",
       "!.git/**",
