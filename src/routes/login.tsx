@@ -151,7 +151,22 @@ function Login() {
 
         <SignedOut>
           {!authEnabled ? (
-            <p className="text-sm text-muted">Sign-in is disabled.</p>
+            <div className="space-y-3 rounded-xl border border-border bg-bg/60 p-3 text-sm text-muted">
+              <p>
+                App accounts (Google / X / email) are <strong className="text-fg">off</strong> on
+                this shareable deploy. That is intentional.
+              </p>
+              <p>
+                Connect JuicyChat from the dashboard with a magic link, email code, or password —
+                not this page.
+              </p>
+              <Link
+                to="/"
+                className="block rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-fg"
+              >
+                Open dashboard
+              </Link>
+            </div>
           ) : (
             <>
               {oauthOff ? (
