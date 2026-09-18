@@ -1,4 +1,5 @@
 import { getSql, dbSource, localPostgres, pglitePersistent } from "@/lib/db";
+import { loungeHomeInfo } from "@/lib/lounge-home";
 import { LOUNGE_KV_FILES } from "./durable-io";
 import { loungeUserAls, userDataPath } from "./paths";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
@@ -397,6 +398,7 @@ export async function persistHealth(userId: string | null) {
   } catch {
     /* */
   }
+  const home = loungeHomeInfo();
   return {
     db: inv.source,
     ok: inv.ok,
@@ -427,6 +429,9 @@ export async function persistHealth(userId: string | null) {
     lastPullKind: inv.lastPullKind,
     lastOkPullAt: inv.lastOkPullAt,
     lastOkPullMessage: inv.lastOkPullMessage,
+    dataDir: home.serverless ? null : home.lounge,
+    pgliteDir: home.pglite,
+    clientHome: home.serverless ? null : home.home,
   };
 }
 
