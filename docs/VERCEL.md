@@ -41,7 +41,8 @@ Then disable Deployment Protection in the dashboard (CLI cannot flip that flag f
 - `/` — sample dashboard (SampleCreator, 2 bots)
 - `/api/health` — `{ "ok": true, "grokAuth": false, ... }`
 - Connecting a real JuicyChat session: open **Config → JuicyChat source** (magic link / password / cookie). Do **not** use `/login` — app OAuth is off on this clone. A working connect returns JuicyChat’s own message (`Magic link sent`, `user not exist`, …), never a bare `Unauthorized`.
-- The session is stored in HttpOnly cookies plus `/tmp` (ephemeral across cold starts). For a durable lounge, use the **local** or **desktop** branch.
+- Session + warehouse persist in **this browser** (IndexedDB). The Vercel isolate is a scrape worker only — it does not keep your lounge. Clearing site data logs you out.
+- Cron on Vercel cannot see IndexedDB, so scheduled pulls stay a no-op on the hosted demo. Use local / desktop for cron.
 
 If connect still says **Unauthorized** / **Forbidden**: the deploy still has Vercel Authentication on, or you are on the `/login` page. Fix protection, then use Config.
 

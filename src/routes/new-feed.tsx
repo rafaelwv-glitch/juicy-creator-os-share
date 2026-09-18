@@ -27,6 +27,7 @@ import { loadNewFeedCached, refreshNewFeed } from "@/lib/juicychat/actions";
 import { DesktopNavLinks, MobileNav } from "@/components/mobile-nav";
 import { formatNum, formatWhen } from "@/lib/juicychat/format";
 import type { NewFeedCard, NewFeedView } from "@/lib/juicychat/new-feed";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/new-feed")({ component: NewFeedPage });
 
@@ -57,6 +58,7 @@ function NewFeedPage() {
     setLoading(true);
     setError(null);
     try {
+      await browserCacheReady();
       const v = (await loadNewFeedCached()) as NewFeedView;
       setData(v);
     } catch (e) {

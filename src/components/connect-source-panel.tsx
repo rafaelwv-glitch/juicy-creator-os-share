@@ -8,6 +8,7 @@ import {
   requestMagicLink,
 } from "@/lib/juicychat/actions";
 import { humanizeConnectError } from "@/lib/juicychat/format";
+import { forgetBrowserCache } from "@/lib/juicychat/browser-sync";
 
 type Auth = {
   authenticated?: boolean;
@@ -72,8 +73,8 @@ export function ConnectSourcePanel({
       </div>
       <p className="mt-1 text-xs text-muted">
         {auth?.authenticated
-          ? `Cloud scrapes as @${auth.user?.userName || auth.user?.userId || "saved"}. This is a data source, not a second app login.`
-          : "Connect JuicyChat once on this dashboard. Android never logs into JuicyChat — Vercel holds the session."}
+          ? `Cloud scrapes as @${auth.user?.userName || auth.user?.userId || "saved"}. Session and warehouse stay in this browser.`
+          : "Connect JuicyChat once on this dashboard. Session + lounge data are stored in this browser, not on a shared Vercel database."}
       </p>
       {open ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -170,7 +171,12 @@ export function ConnectSourcePanel({
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => void run(async () => void (await logoutJuicy()), "Source disconnected")}
+                onClick={() =>
+                  void run(async () => {
+                    await logoutJuicy();
+                    await forgetBrowserCache();
+                  }, "Source disconnected")
+                }
                 className="h-9 rounded-lg border border-danger/40 px-3 text-xs font-semibold text-danger"
               >
                 Disconnect source

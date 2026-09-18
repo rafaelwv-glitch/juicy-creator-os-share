@@ -33,6 +33,7 @@ import {
 import { MobileNav, DesktopNavLinks } from "@/components/mobile-nav";
 import { DataToolsPanel } from "@/components/data-tools-panel";
 import type { CreatorInsights, DiscoveryFeedId } from "@/lib/juicychat/insights";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/insights")({ component: InsightsPage });
 
@@ -77,6 +78,7 @@ function InsightsPage() {
     (async () => {
       setLoading(true);
       try {
+        await browserCacheReady();
         const cached = (await loadCreatorInsightsCached()) as CreatorInsights | null;
         if (!cancelled) setData(cached);
       } catch (e) {

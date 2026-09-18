@@ -406,6 +406,7 @@ export async function persistHealth(userId: string | null) {
     keys: inv.kvKeys,
     durable: (inv.source === "neon" && inv.ok) || (pglitePersistent && inv.ok),
     local: localPostgres || pglitePersistent,
+    browserScoped: Boolean(userId?.startsWith("browser-")),
     vault,
     hasSession: inv.hasSession || vault,
     webhook: inv.webhook,
@@ -445,24 +446,28 @@ export async function pullUserKv(userId: string): Promise<boolean> {
   }
 
   if (found < 3) {
-    await copyLegacySharedKv(userId);
-    try {
-      const sql = await getSql();
-      const rows = await sql.query<{ key: string; value: unknown }>(
-        "select key, value from lounge_user_kv where user_id = $1",
-        [userId],
-      );
-      found = await hydrateFromRows(userId, rows);
-    } catch (e) {
-      console.warn("[lounge] rehydrate after recover failed", e);
+    if (!onShareableVercel() && !userId.startsWith("browser-")) {
+      await copyLegacySharedKv(userId);
+      try {
+        const sql = await getSql();
+        const rows = await sql.query<{ key: string; value: unknown }>(
+          "select key, value from lounge_user_kv where user_id = $1",
+          [userId],
+        );
+        found = await hydrateFromRows(userId, rows);
+      } catch (e) {
+        console.warn("[lounge] rehydrate after recover failed", e);
+      }
     }
   }
 
   if (found < 2) {
-    try {
-      found += (await pullUserBackupFromGitHub(userId)) ? 1 : 0;
-    } catch (e) {
-      console.warn("[lounge] github hydrate failed", e);
+    if (!onShareableVercel() && !userId.startsWith("browser-")) {
+      try {
+        found += (await pullUserBackupFromGitHub(userId)) ? 1 : 0;
+      } catch (e) {
+        console.warn("[lounge] github hydrate failed", e);
+      }
     }
   }
 
