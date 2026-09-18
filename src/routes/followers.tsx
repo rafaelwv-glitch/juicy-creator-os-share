@@ -14,6 +14,7 @@ import { loadFollowersCached, refreshFollowers } from "@/lib/juicychat/actions";
 import { MobileNav, DesktopNavLinks } from "@/components/mobile-nav";
 import { formatDeltaFull, formatFull, formatWhen } from "@/lib/juicychat/format";
 import type { FollowerAnalysis } from "@/lib/juicychat/followers";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/followers")({ component: FollowersPage });
 
@@ -40,6 +41,7 @@ function FollowersPage() {
     setLoading(true);
     setError(null);
     try {
+      await browserCacheReady();
       setData((await loadFollowersCached()) as FollowerAnalysis);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -29,6 +29,7 @@ import {
 } from "@/components/rival-mrt-view";
 import { formatDelta, formatNum, formatWhen } from "@/lib/juicychat/format";
 import type { RivalCompareResult, RivalEntry, RivalMrt, RivalsFile } from "@/lib/juicychat/rivals";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/stalker")({ component: StalkerPage });
 
@@ -51,6 +52,7 @@ function StalkerPage() {
   const [deepAll, setDeepAll] = useState(false);
 
   const reload = useCallback(async () => {
+    await browserCacheReady();
     const res = (await listRivals()) as RivalFn;
     setFile(res.file);
     setCompare(res.compare);

@@ -5,7 +5,7 @@ export const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
   "access-control-allow-headers":
-    "content-type, authorization, x-lounge-token, x-jl-cookie, x-cron-secret, x-lounge-device, x-lounge-report",
+    "content-type, authorization, x-lounge-token, x-jl-cookie, x-cron-secret, x-lounge-device, x-lounge-report, x-lounge-browser",
   "access-control-max-age": "86400",
 };
 

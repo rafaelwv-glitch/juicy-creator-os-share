@@ -5,7 +5,9 @@ function keyBytes(): Buffer {
     process.env.BETTER_AUTH_SECRET?.trim() ||
     process.env.LOUNGE_SECRET?.trim() ||
     "juicy-lounge-dev-secret";
-  return createHash("sha256").update(secret).digest();
+  // Bump invalidates shareable Vercel vault cookies (live test session).
+  const epoch = process.env.LOUNGE_VAULT_EPOCH?.trim() || "share-wipe-20260918";
+  return createHash("sha256").update(`${secret}\n${epoch}`).digest();
 }
 
 /** Encrypt a UTF-8 string. Output is `v1.<iv_b64>.<tag_b64>.<ct_b64>`. */

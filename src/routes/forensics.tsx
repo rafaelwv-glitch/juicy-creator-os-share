@@ -37,6 +37,7 @@ import type {
   ForensicReport,
   WhyFactor,
 } from "@/lib/juicychat/forensics";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/forensics")({ component: ForensicsPage });
 
@@ -74,6 +75,7 @@ function ForensicsPage() {
     setLoading(true);
     setErr(null);
     try {
+      await browserCacheReady();
       const ix = (await loadForensicsIndex()) as ForensicIndex;
       setIndex(ix);
       const pick = selected && ix.bots.some((b) => b.characterId === selected) ? selected : ix.bots[0]?.characterId;

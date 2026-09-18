@@ -4,6 +4,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { CreatedWithGrokBanner } from "@/components/created-with-grok-banner";
 import { RequireAuth } from "@/components/require-auth";
 import { isNativePhone } from "@/lib/juicychat/phone-native";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Juicy Lounge";
@@ -61,6 +62,7 @@ function RootDocument() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    void browserCacheReady();
     if (isNativePhone() && pathname !== "/phone") {
       window.location.replace("/phone");
     }

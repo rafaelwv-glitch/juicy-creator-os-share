@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Loader2, RefreshCw, Webhook } from "lucide-react";
+import { getBrowserStoreId, withBrowserHeaders } from "@/lib/juicychat/browser-store";
 
 type HookView = {
   url: string;
@@ -30,7 +31,10 @@ export function GrokHookPanel({ className = "" }: { className?: string }) {
   };
 
   const reload = useCallback(async () => {
-    const res = await fetch("/api/lounge/hook", { credentials: "include" });
+    const res = await fetch("/api/lounge/hook", {
+      credentials: "include",
+      headers: withBrowserHeaders(),
+    });
     const data = (await res.json()) as { hook?: HookView; error?: string };
     if (!res.ok || !data.hook) throw new Error(data.error || "Could not load Grok hook");
     apply(data.hook);
@@ -50,8 +54,8 @@ export function GrokHookPanel({ className = "" }: { className?: string }) {
       const res = await fetch("/api/lounge/hook", {
         method: "POST",
         credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+        headers: withBrowserHeaders({ "content-type": "application/json" }),
+        body: JSON.stringify({ ...body, browserStoreId: getBrowserStoreId() }),
       });
       const data = (await res.json()) as {
         ok?: boolean;

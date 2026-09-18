@@ -1,4 +1,5 @@
 import { getDeviceToken } from "@/lib/auth/device-client";
+import { BROWSER_HEADER, getBrowserStoreId } from "./browser-store";
 import type { CreatorDashboard } from "./dashboard";
 
 export type CloudRefreshResult = {
@@ -16,13 +17,18 @@ export type CloudRefreshResult = {
 /** Same-origin REST pull — cookies + device token. Do not use a server fn here. */
 export async function postCloudRefresh(): Promise<CloudRefreshResult> {
   const token = getDeviceToken();
+  const browserId = getBrowserStoreId();
   const headers = new Headers({ "content-type": "application/json", accept: "application/json" });
   if (token) headers.set("x-lounge-device", token);
+  if (browserId) headers.set(BROWSER_HEADER, browserId);
   const res = await fetch("/api/lounge/refresh", {
     method: "POST",
     credentials: "include",
     headers,
-    body: JSON.stringify(token ? { deviceToken: token } : {}),
+    body: JSON.stringify({
+      ...(token ? { deviceToken: token } : {}),
+      ...(browserId ? { browserStoreId: browserId } : {}),
+    }),
   });
   const data = (await res.json().catch(() => ({}))) as {
     ok?: boolean;

@@ -31,6 +31,7 @@ import type {
   BotTimingRow,
   TagTimingRow,
 } from "@/lib/juicychat/notifications";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/timing")({ component: TimingDashboard });
 
@@ -92,6 +93,7 @@ function TimingDashboard() {
       setBootLoading(true);
       setError(null);
       try {
+        await browserCacheReady();
         const data = (await getTimingAnalysis()) as TimingAnalysis;
         if (!cancelled) setAnalysis(data);
       } catch (e) {

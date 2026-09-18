@@ -111,7 +111,9 @@ function clearHeader(name: string): string {
 
 export function loungeVaultSetCookies(): string[] {
   const vault = buildLoungeVault();
-  if (!vault.session && !vault.hook) return [];
+  if (!vault.session && !vault.hook) {
+    return LOUNGE_VAULT_COOKIES.map((name) => clearHeader(name));
+  }
   const sealed = sealString(JSON.stringify(vault));
   const chunks: string[] = [];
   const size = 3200;
@@ -132,7 +134,18 @@ export async function applyLoungeVaultCookie(): Promise<void> {
   try {
     const { setCookie } = await import("@tanstack/react-start/server");
     const vault = buildLoungeVault();
-    if (!vault.session && !vault.hook) return;
+    if (!vault.session && !vault.hook) {
+      for (const name of LOUNGE_VAULT_COOKIES) {
+        setCookie(name, "", {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 0,
+        });
+      }
+      return;
+    }
     const sealed = sealString(JSON.stringify(vault));
     const size = 3200;
     const chunks: string[] = [];
