@@ -28,6 +28,22 @@ Outputs under `release/`:
 
 Needs Node 22+ and the usual Linux desktop libs (`libgtk-3`, `libnotify`, `libnss3`, `libxss1`, `libxtst6`, `xdg-utils`).
 
+## Build Windows packages
+
+```bash
+npm run desktop:build:win
+```
+
+From Linux this cross-compiles x64 Windows. Wine is required for the NSIS installer and portable `.exe`; the zip always builds.
+
+Outputs under `release/`:
+
+- `Juicy-Creator-OS-<version>-win-x64-setup.exe` — one-click installer
+- `Juicy-Creator-OS-<version>-win-x64-portable.exe` — single-file portable
+- `Juicy-Creator-OS-<version>-win-x64.zip` — unpacked folder + `Juicy-Creator-OS.exe`
+
+Unsigned. Windows SmartScreen may warn on first run — More info → Run anyway.
+
 ## Smoke
 
 ```bash

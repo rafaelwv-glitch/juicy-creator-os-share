@@ -24,7 +24,8 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
     "desktop": "electron desktop/main.mjs",
-    "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir"
+    "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir",
+    "desktop:build:win": "electron-builder --win zip nsis portable --x64"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -85,7 +86,11 @@
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
     "zod": "^4.3.6",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "lightningcss": "^1.28.0",
+    "nitro": "3.0.260603-beta",
+    "vite": "^8.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
@@ -93,20 +98,16 @@
     "@types/pg": "^8.11.10",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "lightningcss": "^1.28.0",
-    "nitro": "3.0.260603-beta",
     "playwright": "^1.52.0",
     "prettier": "^3.4.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.1.0",
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12"
   },
@@ -125,11 +126,34 @@
       "!release/**",
       "!data/**",
       "!.git/**",
+      "!.vercel/**",
+      "!.github/**",
       "!**/*.map"
     ],
     "extraResources": [
       "fixtures"
     ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "artifactName": "Juicy-Creator-OS-${version}-win-${arch}.${ext}",
+      "executableName": "Juicy-Creator-OS",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "Juicy Creator OS",
+      "uninstallDisplayName": "Juicy Creator OS",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Juicy-Creator-OS-${version}-win-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "Juicy-Creator-OS-${version}-win-${arch}-portable.${ext}"
+    },
     "linux": {
       "target": [
         "AppImage",
