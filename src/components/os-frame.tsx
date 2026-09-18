@@ -62,11 +62,11 @@ export function useOsSession() {
           if (persist || fromIdb?.live) {
             setPersist({
               ...(persist || {}),
-              browserCache: fromIdb?.live || persist?.browserScoped,
+              browserCache: Boolean(fromIdb?.live && !persist?.durable && !persist?.pgliteDir),
               browserSavedAt: fromIdb?.savedAt || null,
-              durable: Boolean(persist?.durable || fromIdb?.live),
+              durable: Boolean(persist?.durable || persist?.pgliteDir || fromIdb?.live),
               hasSession: Boolean(persist?.hasSession || fromIdb?.hasSession),
-              bots: fromIdb?.bots || persist?.bots,
+              bots: persist?.bots || fromIdb?.bots,
               snapshotAt: persist?.snapshotAt || fromIdb?.savedAt || null,
             });
           } else {

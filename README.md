@@ -2,7 +2,10 @@
 
 Clean, audited clone of the JuicyChat creator dashboard. **No app accounts, no OAuth, no API keys, no live sessions, no personal warehouse dumps.**
 
-The UI boots on anonymous **sample bots** (`fixtures/warehouse-sample.json`). Connect your own JuicyChat lounge later with magic link / email code — that session and warehouse stay **in your browser** (IndexedDB). The hosted isolate does not keep them.
+The UI boots on anonymous **sample bots** (`fixtures/warehouse-sample.json`). Connect your own JuicyChat lounge later with magic link / email code.
+
+- **Hosted Vercel:** session + warehouse stay in **this browser** (IndexedDB).
+- **Local / desktop:** file-backed PGLite + JSON under the OS user-data folder (see [LOCAL.md](./docs/LOCAL.md) and [DESKTOP.md](./docs/DESKTOP.md)).
 
 | Branch | What it is |
 | --- | --- |

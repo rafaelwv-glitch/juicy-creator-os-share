@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { dbSource, localPostgres, pglitePersistent } from "@/lib/db";
+import { loungeHomeInfo } from "@/lib/lounge-home";
 import { authConfigured } from "@/lib/auth/server";
 import { countAuthUsers } from "@/lib/auth/auth-durable";
 import { jsonResponse } from "@/lib/juicychat/http";
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/api/health")({
     handlers: {
       GET: async () => {
         const [users, ping] = await Promise.all([countAuthUsers(), pingDb()]);
+        const home = loungeHomeInfo();
         return jsonResponse({
           ok: ping.ok,
           db: dbSource,
@@ -27,6 +29,9 @@ export const Route = createFileRoute("/api/health")({
           authUsers: users,
           durable: (dbSource === "neon" && ping.ok) || (pglitePersistent && ping.ok),
           local: localPostgres || pglitePersistent,
+          dataDir: home.serverless ? null : home.lounge,
+          pgliteDir: home.pglite,
+          clientHome: home.serverless ? null : home.home,
         });
       },
     },

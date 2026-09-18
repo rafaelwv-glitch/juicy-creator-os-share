@@ -1,3 +1,5 @@
+import { ensureLoungeHome, resolvePgliteDir } from "@/lib/lounge-home";
+
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
@@ -15,33 +17,12 @@ const databaseUrl =
  */
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
 
-function onServerlessRuntime(): boolean {
-  if (typeof process === "undefined") return false;
-  return (
-    process.env.VERCEL === "1" ||
-    process.env.VERCEL === "true" ||
-    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
-    process.env.NETLIFY === "true" ||
-    process.cwd() === "/var/task" ||
-    process.cwd().startsWith("/var/task/")
-  );
-}
-
 /**
  * Directory for file-backed PGLite. Unset on Vercel / serverless (ephemeral
- * isolate → in-memory, same as before). Local laptop: `PGLITE_DATA_DIR` or
- * `./data/pglite` so restarts keep schema + lounge rows.
+ * isolate → in-memory). Local / Electron: user-data home, or `PGLITE_DATA_DIR`.
  */
 export function resolvePgliteDataDir(): string | undefined {
-  if (typeof process === "undefined" || typeof process.cwd !== "function") return undefined;
-  const forced = process.env.PGLITE_DATA_DIR?.trim();
-  if (forced) return forced;
-  if (onServerlessRuntime()) return undefined;
-  try {
-    return `${process.cwd()}/data/pglite`;
-  } catch {
-    return undefined;
-  }
+  return resolvePgliteDir();
 }
 
 export const pgliteDataDir = resolvePgliteDataDir();
@@ -170,12 +151,13 @@ async function loadPgliteFsBundle(): Promise<Blob | undefined> {
 async function createPgliteSql(): Promise<Sql> {
   // Embedded Postgres, imported on demand so it never loads on the Neon path.
   // One instance per process, shared across HMR. Serverless / preview: memory
-  // (resets on isolate death). Local laptop: file-backed under ./data/pglite.
+  // (resets on isolate death). Local / Electron: file-backed under the user data home.
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
     const fsBundle = await loadPgliteFsBundle();
     const dataDir = resolvePgliteDataDir();
     if (dataDir) {
+      ensureLoungeHome();
       const { mkdir } = await import("node:fs/promises");
       await mkdir(dataDir, { recursive: true });
     }

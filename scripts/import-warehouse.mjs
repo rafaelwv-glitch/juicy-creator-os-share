@@ -8,12 +8,13 @@
  * Idempotent upserts into lounge_user_kv (+ legacy lounge_kv) and first-class
  * lounge_* tables. Never writes cookies / vouchers unless --allow-credentials.
  *
- * DATABASE_URL → node-postgres. Otherwise file-backed PGLite (./data/pglite).
+ * DATABASE_URL → node-postgres. Otherwise file-backed PGLite (user-data pglite/).
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { databaseUrl, loadLocalEnv, pgliteDataDir } from "./local-env.mjs";
+import { resolveLoungeDataDir } from "./lounge-home.mjs";
 
 loadLocalEnv();
 
@@ -545,7 +546,7 @@ async function projectRelational(db, userId, files) {
 }
 
 function writeUserFiles(userId, files) {
-  const root = process.env.JUICY_DATA_DIR?.trim() || join(process.cwd(), "data");
+  const root = process.env.JUICY_DATA_DIR?.trim() || resolveLoungeDataDir();
   const safe = userId.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "user";
   const dir = join(root, "users", safe);
   mkdirSync(dir, { recursive: true });

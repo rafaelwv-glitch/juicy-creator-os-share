@@ -38,7 +38,21 @@ npm run db:migrate
 npm run dev:local
 ```
 
-Leave `DATABASE_URL` unset unless you also turn auth on. This clone keeps auth off, so the shared `dev-user` must not sit on a shared Postgres. The web UI also writes the lounge warehouse to IndexedDB in this browser (survives a `data/` wipe on preview).
+Leave `DATABASE_URL` unset unless you also turn auth on. This clone keeps auth off, so the shared `dev-user` must not sit on a shared Postgres.
+
+## Where data lives
+
+The local client **reads and writes** a file-backed PGLite database plus JSON warehouse files:
+
+| OS | Folder |
+| --- | --- |
+| Linux | `~/.local/share/juicy-creator-os/` |
+| Windows | `%APPDATA%\Juicy Creator OS\` |
+| macOS | `~/Library/Application Support/Juicy Creator OS/` |
+
+Inside that folder: `lounge/` (JSON) and `pglite/` (embedded Postgres). Copy the whole folder to back up. Config → Database shows the path.
+
+If this checkout already has `./data/last-snapshot.json`, that folder is still used (older installs). Override with `JUICY_DATA_DIR` / `PGLITE_DATA_DIR`.
 
 ## Import your own warehouse
 

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { ensureLoungeHome, isServerlessRuntime, resolveLoungeDataDir } from "@/lib/lounge-home";
 
 /**
  * Per-request lounge account id. All JSON files under getDataDir() are scoped
@@ -14,19 +15,9 @@ export function currentLoungeUserId(): string | null {
 }
 
 function rootDataDir(): string {
-  const forced = process.env.JUICY_DATA_DIR?.trim();
-  if (forced) return forced;
-
-  const onServerless =
-    process.env.VERCEL === "1" ||
-    process.env.VERCEL === "true" ||
-    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
-    process.env.NETLIFY === "true" ||
-    process.cwd() === "/var/task" ||
-    process.cwd().startsWith("/var/task/");
-
-  if (onServerless) return join(tmpdir(), "juicy-lounge-data");
-  return join(process.cwd(), "data");
+  if (isServerlessRuntime()) return join(tmpdir(), "juicy-lounge-data");
+  ensureLoungeHome();
+  return resolveLoungeDataDir();
 }
 
 function safeUserSegment(userId: string): string {
@@ -51,7 +42,7 @@ export function userDataPath(userId: string, ...parts: string[]): string {
 
 /**
  * Writable data directory for JuicyChat session/snapshots.
- * Local / preview: <cwd>/data
+ * Local / Electron: user-data home (`lounge/`)
  * Vercel: /tmp/juicy-lounge-data
  * When a lounge account is in ALS: .../users/<id>
  */

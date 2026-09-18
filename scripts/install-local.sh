@@ -32,19 +32,7 @@ else
 fi
 
 mkdir -p data
-if [ ! -f data/last-snapshot.json ]; then
-  node --input-type=module -e "
-    import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-    import { join } from 'node:path';
-    const raw = JSON.parse(readFileSync('fixtures/warehouse-sample.json','utf8'));
-    mkdirSync('data', { recursive: true });
-    for (const [name, body] of Object.entries(raw.files || {})) {
-      if (!String(name).endsWith('.json')) continue;
-      writeFileSync(join('data', String(name)), JSON.stringify(body, null, 2));
-    }
-    console.log('==> seeded sample warehouse into ./data');
-  "
-fi
+node scripts/init-lounge-home.mjs
 
 echo
 echo "Install complete. Start the dashboard with:"
