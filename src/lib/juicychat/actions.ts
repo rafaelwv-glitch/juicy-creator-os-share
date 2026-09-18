@@ -18,6 +18,11 @@ function persistSnapshot(snapshot: LoungeSnapshot) {
   }
 }
 
+async function afterLoungeLogin() {
+  const { discardSampleWarehouse } = await import("./dashboard");
+  discardSampleWarehouse();
+}
+
 function loadSnapshotFile(): LoungeSnapshot | null {
   try {
     const path = dataPath("last-snapshot.json");
@@ -170,6 +175,7 @@ export const loginWithPassword = createServerFn({ method: "POST" })
       source: "password",
       loggedInAt: new Date().toISOString(),
     });
+    await afterLoungeLogin();
     return { ok: true as const, message: result.message, user };
   });
 
@@ -182,14 +188,16 @@ export const loginWithMagicLink = createServerFn({ method: "POST" })
     if (!result.ok) {
       return { ok: false as const, message: result.message };
     }
-    let user: { userId?: string; userName?: string; userNo?: string } | null = null;
-    try {
-      const me = await client.get<Record<string, unknown> | null>("/yume/api/user/v1/getUserInfo");
-      if (me.data && (me.data as { userId?: string }).userId) {
-        user = me.data as { userId?: string; userName?: string; userNo?: string };
+    let user: { userId?: string; userName?: string; userNo?: string } | null = result.user || null;
+    if (!user?.userId) {
+      try {
+        const me = await client.get<Record<string, unknown> | null>("/yume/api/user/v1/getUserInfo");
+        if (me.data && (me.data as { userId?: string }).userId) {
+          user = me.data as { userId?: string; userName?: string; userNo?: string };
+        }
+      } catch {
+        /* cookie may still be enough */
       }
-    } catch {
-      /* cookie may still be enough */
     }
     saveSession({
       cookie: client.cookie,
@@ -202,6 +210,7 @@ export const loginWithMagicLink = createServerFn({ method: "POST" })
       source: "magic-link",
       loggedInAt: new Date().toISOString(),
     });
+    await afterLoungeLogin();
     return { ok: true as const, message: result.message, user };
   });
 
@@ -233,6 +242,7 @@ export const loginWithCookie = createServerFn({ method: "POST" })
       source: "manual-cookie",
       loggedInAt: new Date().toISOString(),
     });
+    await afterLoungeLogin();
     return { ok: true as const, message: user ? `Logged in as @${user.userName || user.userId}` : "Cookie saved.", user };
   });
 
@@ -277,6 +287,7 @@ export const loginWithGoogleIdToken = createServerFn({ method: "POST" })
       source: "google",
       loggedInAt: new Date().toISOString(),
     });
+    await afterLoungeLogin();
     return { ok: true as const, message: result.message, user };
   });
 
@@ -309,6 +320,7 @@ export const loginWithGoogleCookie = createServerFn({ method: "POST" })
       source: "google",
       loggedInAt: new Date().toISOString(),
     });
+    await afterLoungeLogin();
     return {
       ok: true as const,
       message: user ? `Logged in as @${user.userName || user.userId}` : "Google session saved.",

@@ -141,7 +141,12 @@ export class JuicyClient {
     };
   }
 
-  async redeemMagicLink(url: string): Promise<{ ok: boolean; message: string; finalUrl?: string }> {
+  async redeemMagicLink(url: string): Promise<{
+    ok: boolean;
+    message: string;
+    finalUrl?: string;
+    user?: { userId?: string; userName?: string; userNo?: string };
+  }> {
     let target = url.trim();
     if (/^[a-f0-9]{16,64}$/i.test(target)) {
       target = `${BASE}/yume/api/emailLoginBack?param=${target}`;
@@ -201,14 +206,17 @@ export class JuicyClient {
     }
 
     const me = await this.get<Record<string, unknown> | null>("/yume/api/user/v1/getUserInfo");
-    if (me.data && (me.data as { userId?: string }).userId) {
-      const name = (me.data as { userName?: string }).userName || "account";
-      return { ok: true, message: `Logged in as @${name}.`, finalUrl };
+    const user = me.data && (me.data as { userId?: string }).userId
+      ? (me.data as { userId?: string; userName?: string; userNo?: string })
+      : undefined;
+    if (user?.userId) {
+      const name = user.userName || "account";
+      return { ok: true, message: `Logged in as @${name}.`, finalUrl, user };
     }
     if (this.cookie.includes("yume_voucher")) {
       return {
         ok: true,
-        message: "Session cookie saved. Click Refresh to verify private bots.",
+        message: "Session cookie saved. Pulling lounge…",
         finalUrl,
       };
     }

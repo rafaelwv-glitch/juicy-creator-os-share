@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { buildCreatorDashboard } from "./dashboard";
+import { buildCreatorDashboard, isSampleUserId } from "./dashboard";
 import { scrapeFollowers } from "./followers";
 import { loadSession, saveSession } from "./session";
 import { fireDuePublishJobs } from "./cloud-publish";
@@ -157,13 +157,13 @@ async function checkpoint() {
 
 async function resolveJuicyUserId(): Promise<string> {
   const session = loadSession();
-  let userId = session?.userId || "";
+  let userId = session?.userId && !isSampleUserId(session.userId) ? session.userId : "";
   if (session?.cookie) {
     try {
       const client = JuicyClient.fromSession(session);
       const me = await client.get<Record<string, unknown> | null>("/yume/api/user/v1/getUserInfo");
       const liveId = (me.data as { userId?: string } | null)?.userId;
-      if (liveId) {
+      if (liveId && !isSampleUserId(String(liveId))) {
         userId = String(liveId);
         saveSession({
           ...session,
@@ -182,7 +182,8 @@ async function resolveJuicyUserId(): Promise<string> {
       const p = dataPath("last-snapshot.json");
       if (existsSync(p)) {
         const snap = JSON.parse(readFileSync(p, "utf8")) as LoungeSnapshot;
-        userId = snap.userId || snap.profile?.userId || "";
+        const snapId = snap.userId || snap.profile?.userId || "";
+        if (snapId && !isSampleUserId(snapId)) userId = snapId;
       }
     } catch {
       /* */
