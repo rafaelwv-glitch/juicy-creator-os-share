@@ -1,27 +1,32 @@
-# Local installer (Linux)
+# Local installer
 
 Run the creator dashboard on a laptop. No cloud account. No Docker required (PGLite file DB is the default).
 
-## Install
+## Linux / macOS
 
 ```bash
 git clone https://github.com/rafaelwv-glitch/juicy-creator-os-share.git
 cd juicy-creator-os-share
 git checkout local
 bash scripts/install-local.sh
-```
-
-The script checks Node 22+, installs deps, writes `.env.local` with auth off, seeds the sample warehouse, and prints the start command.
-
-## Start
-
-```bash
 npm run dev:local
 ```
 
-Open http://127.0.0.1:8080 — you should see **SampleCreator**.
+Open http://127.0.0.1:8080 — you should see **SampleCreator**. Stop with Ctrl+C.
 
-Stop with Ctrl+C.
+## Windows
+
+```bat
+git clone https://github.com/rafaelwv-glitch/juicy-creator-os-share.git
+cd juicy-creator-os-share
+git checkout local
+scripts\install-local.cmd
+npm run dev:local
+```
+
+Then open http://127.0.0.1:8080. Prefer the Electron zip/installer from [Releases](https://github.com/rafaelwv-glitch/juicy-creator-os-share/releases) if you do not want Node on the PATH.
+
+The script checks Node 22+, installs deps, writes `.env.local` with auth off, seeds the sample warehouse, and prints the start command.
 
 ## Optional Postgres
 
