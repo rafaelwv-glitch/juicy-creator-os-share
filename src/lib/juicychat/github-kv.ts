@@ -13,6 +13,13 @@ const REPO = "juicy-creator-os";
 const BRANCH = "lounge-data";
 
 function token(): string {
+  // Shareable Vercel clone must not read/write the private lounge-data branch.
+  if (
+    (process.env.VERCEL === "1" || process.env.VERCEL === "true") &&
+    process.env.VITE_AUTH_ENABLED !== "true"
+  ) {
+    return "";
+  }
   return (
     process.env.LOUNGE_GITHUB_TOKEN?.trim() ||
     process.env.GITHUB_TOKEN?.trim() ||

@@ -1,11 +1,71 @@
 import { getSql, dbSource, localPostgres, pglitePersistent } from "@/lib/db";
 import { LOUNGE_KV_FILES } from "./durable-io";
 import { loungeUserAls, userDataPath } from "./paths";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { openJson, sealJson } from "./secret-box";
 import { pullUserBackupFromGitHub, pushUserBackupToGitHub } from "./github-kv";
 
 const SESSION_KEY = "juicy-session.json";
+const PURGE_EPOCH = 1;
+const PURGE_MARK = "lounge-purge-epoch.json";
+
+function onShareableVercel(): boolean {
+  return (
+    (process.env.VERCEL === "1" || process.env.VERCEL === "true") &&
+    process.env.VITE_AUTH_ENABLED !== "true"
+  );
+}
+
+/** Drop a live JuicyChat session that leaked onto the public shareable isolate. */
+export async function purgeShareableLiveIfStale(userId: string): Promise<void> {
+  if (!onShareableVercel() || !userId) return;
+  const markPath = userDataPath(userId, PURGE_MARK);
+  try {
+    const cur = JSON.parse(readFileSync(markPath, "utf8")) as { epoch?: number };
+    if (Number(cur.epoch) >= PURGE_EPOCH) return;
+  } catch {
+    /* first wipe */
+  }
+  const { loadSession } = await import("./session");
+  const { isSampleSnapshot, seedSampleWarehouseIfEmpty } = await import("./dashboard");
+  const session = loadSession();
+  let snap: { userId?: string; profile?: { userId?: string; userName?: string } } | null = null;
+  try {
+    const p = userDataPath(userId, "last-snapshot.json");
+    if (existsSync(p)) snap = JSON.parse(readFileSync(p, "utf8"));
+  } catch {
+    /* */
+  }
+  const live = sessionLooksValid(session) || Boolean(snap && !isSampleSnapshot(snap));
+  if (live) {
+    for (const name of LOUNGE_KV_FILES) {
+      const p = userDataPath(userId, name);
+      if (existsSync(p)) {
+        try {
+          unlinkSync(p);
+        } catch {
+          /* */
+        }
+      }
+    }
+    try {
+      const sql = await getSql();
+      await sql.query("delete from lounge_user_kv where user_id = $1", [userId]);
+      await sql.query("delete from lounge_kv where key = any($1::text[])", [
+        [...LOUNGE_KV_FILES],
+      ]);
+    } catch (e) {
+      console.warn("[lounge] shareable kv wipe failed", e);
+    }
+    seedSampleWarehouseIfEmpty();
+    console.warn("[lounge] purged live shareable session for", userId.slice(0, 8));
+  }
+  try {
+    writeFileSync(markPath, JSON.stringify({ epoch: PURGE_EPOCH, at: new Date().toISOString() }));
+  } catch {
+    /* */
+  }
+}
 
 export async function listLoungeUserIds(): Promise<string[]> {
   try {
@@ -504,6 +564,7 @@ export async function withUserStore<T>(userId: string | null, fn: () => Promise<
   await pullUserKv(userId);
   return loungeUserAls.run(userId, async () => {
     try {
+      await purgeShareableLiveIfStale(userId);
       const result = await fn();
       await pushUserKv(userId);
       return result;
