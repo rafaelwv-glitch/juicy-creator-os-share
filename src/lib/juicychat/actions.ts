@@ -818,39 +818,58 @@ export const getBrowserCacheStatus = createServerFn({ method: "GET" })
   .middleware([durableMiddleware])
   .handler(async () => {
     const { isSampleSnapshot } = await import("./dashboard");
+    const { collectBrowserWarehouse } = await import("./backup");
+    const { loadRivals } = await import("./rivals");
     const session = loadSession();
     const snap = loadSnapshotFile();
     const sample = isSampleSnapshot(snap) || (!snap && !session?.cookie);
+    const warehouse = collectBrowserWarehouse();
+    const rivals = loadRivals();
+    const rivalCount = rivals?.rivals?.length ?? 0;
     return {
       sample,
-      hasWarehouse: Boolean(snap),
+      hasWarehouse: Boolean(snap) && !sample,
       hasSession: Boolean(session?.cookie),
+      hasRivals: rivalCount > 0,
       bots: snap?.bots?.length ?? 0,
       userId: snap?.profile?.userId || snap?.userId || session?.userId || null,
       userName: snap?.profile?.userName || session?.userName || null,
       scrapedAt: snap?.scrapedAt ?? null,
-      keys: snap ? 1 : 0,
+      keys: Object.keys(warehouse.files || {}).length,
+      rivalCount,
     };
   });
 
 export const exportBrowserBundle = createServerFn({ method: "POST" })
   .middleware([durableMiddleware])
   .handler(async () => {
-    const { collectWarehouse } = await import("./backup");
+    const { collectBrowserWarehouse, filesForBrowserCache } = await import("./backup");
     const { BROWSER_CACHE_FORMAT, BROWSER_CACHE_VERSION } = await import("./browser-store");
     const { isSampleSnapshot } = await import("./dashboard");
-    const warehouse = collectWarehouse();
+    const collected = collectBrowserWarehouse();
     const session = loadSession();
-    const snap = warehouse.files?.["last-snapshot.json"] as
+    const snap = collected.files?.["last-snapshot.json"] as
       | { userId?: string; profile?: { userName?: string } }
       | undefined;
     const sample = isSampleSnapshot(snap);
+    const files = filesForBrowserCache(collected.files || {}, sample);
+    if (session?.cookie) files["juicy-session.json"] = session;
+    const account = sample
+      ? session
+        ? { userId: session.userId, userName: session.userName, userNo: session.userNo }
+        : collected.account
+      : collected.account;
     const bundle = {
       format: BROWSER_CACHE_FORMAT,
       version: BROWSER_CACHE_VERSION,
       savedAt: new Date().toISOString(),
       session: session?.cookie ? session : null,
-      warehouse: sample ? { ...warehouse, files: {} } : warehouse,
+      warehouse: {
+        ...collected,
+        account,
+        files,
+        manifest: { ...collected.manifest, keys: Object.keys(files).sort() },
+      },
     };
     const payload = gzipSync(Buffer.from(JSON.stringify(bundle))).toString("base64");
     return { encoding: "gzip-base64" as const, payload };
