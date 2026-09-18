@@ -8,7 +8,7 @@ import {
   requestMagicLink,
 } from "@/lib/juicychat/actions";
 import { humanizeConnectError } from "@/lib/juicychat/format";
-import { forgetBrowserCache } from "@/lib/juicychat/browser-sync";
+import { forgetBrowserCache, rememberBrowserCache } from "@/lib/juicychat/browser-sync";
 
 type Auth = {
   authenticated?: boolean;
@@ -43,6 +43,7 @@ export function ConnectSourcePanel({
       await fn();
       if (pull && onConnected) await onConnected();
       else await onChange();
+      if (pull) void rememberBrowserCache();
       setMsg(success);
       setOk(true);
     } catch (e) {

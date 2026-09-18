@@ -38,7 +38,7 @@ import type {
   RivalsFile,
   TrackedCreatorRef,
 } from "@/lib/juicychat/rivals";
-import { browserCacheReady } from "@/lib/juicychat/browser-sync";
+import { browserCacheReady, rememberBrowserCache } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/stalker")({ component: StalkerPage });
 
@@ -220,6 +220,7 @@ function StalkerPage() {
       setLabel("");
       setMsg(`Pinned @${res.entry.userName || res.entry.userId}`);
       setOk(true);
+      void rememberBrowserCache();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);
@@ -272,6 +273,7 @@ function StalkerPage() {
       applyRoster(res);
       setMsg("Pinned — stays even if they leave the 30d window");
       setOk(true);
+      void rememberBrowserCache();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);
@@ -290,6 +292,7 @@ function StalkerPage() {
       if (leftId === userId) setLeftId(res.compare.rows[0]?.userId ?? null);
       setMsg("Removed");
       setOk(true);
+      void rememberBrowserCache();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);

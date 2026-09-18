@@ -39,6 +39,22 @@ export const WAREHOUSE_FILES = [
   "new-feed.json",
 ] as const;
 
+/** Origin-private browser cache: warehouse + credentials. */
+export const BROWSER_FILES = [...WAREHOUSE_FILES, "juicy-session.json", "grok-hook.json"] as const;
+
+/** Demo analytics dropped from IDB when the snapshot is still SampleCreator. */
+export const SAMPLE_ANALYTICS_FILES = [
+  "last-snapshot.json",
+  "growth-history.json",
+  "notification-events.json",
+  "creator-insights.json",
+  "followers-history.json",
+  "creator-dashboard.json",
+  "creator-ranklist.json",
+  "bot-forensics.json",
+  "creator-economy.json",
+] as const;
+
 export type JuicyBackup = {
   format: typeof BACKUP_FORMAT;
   version: string;
@@ -260,6 +276,50 @@ export function collectWarehouse(): LoungeWarehouse {
   };
 }
 
+/** Keep pins/jobs/session when the isolate still has the SampleCreator snapshot. */
+export function filesForBrowserCache(
+  files: Record<string, unknown>,
+  sample: boolean,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...files };
+  if (!sample) return out;
+  for (const name of SAMPLE_ANALYTICS_FILES) delete out[name];
+  return out;
+}
+
+/** Origin-private dump for IndexedDB. Includes session + grok hook. */
+export function collectBrowserWarehouse(): LoungeWarehouse {
+  const files: Record<string, unknown> = {};
+  for (const name of BROWSER_FILES) {
+    const v = readKv(name);
+    if (v == null) continue;
+    files[name] = name === "juicy-session.json" || name === "grok-hook.json" ? v : stripSecrets(v);
+  }
+  const snap = (files["last-snapshot.json"] as LoungeSnapshot | undefined) || loadSnapshotFile();
+  const session = loadSession();
+  const account: WarehouseAccount | null = snap?.profile
+    ? {
+        userId: snap.profile.userId || snap.userId,
+        userName: snap.profile.userName,
+        userNo: snap.profile.userNo,
+      }
+    : session
+      ? { userId: session.userId, userName: session.userName, userNo: session.userNo }
+      : snap?.userId
+        ? { userId: snap.userId }
+        : null;
+  return {
+    format: WAREHOUSE_FORMAT,
+    version: WAREHOUSE_VERSION,
+    exportedAt: new Date().toISOString(),
+    timezone: "Europe/Madrid",
+    credentials: false,
+    account,
+    manifest: buildManifest(files),
+    files,
+  };
+}
+
 function filesFromLegacy(data: Partial<JuicyBackup> & { events?: NotifStore["events"] }): Record<string, unknown> {
   const files: Record<string, unknown> = {};
   if (data.snapshot) files["last-snapshot.json"] = data.snapshot;
@@ -349,22 +409,37 @@ export function applyBackup(
 
   let written = 0;
   for (const [name, value] of Object.entries(files)) {
-    if (CREDENTIAL_FILES.has(name)) continue;
-    if (!(WAREHOUSE_FILES as readonly string[]).includes(name)) continue;
+    const isCred = CREDENTIAL_FILES.has(name);
+    if (isCred && !opts?.allowCredentials) continue;
+    if (!isCred && !(WAREHOUSE_FILES as readonly string[]).includes(name)) continue;
     if (value == null) continue;
+    if (name === "juicy-session.json") {
+      const sess = value as JuicySession;
+      if (sess?.cookie && sess.cookie.length > 8) {
+        saveSession(sess);
+        written += 1;
+      }
+      continue;
+    }
     writeKv(name, value);
     written += 1;
   }
 
   let restoredSession = false;
   if (opts?.allowCredentials) {
-    let session = (data.session ?? null) as (JuicySession & { loungeUserId?: string }) | null;
+    let session = (data.session ?? (files["juicy-session.json"] as JuicySession | undefined) ?? null) as
+      | (JuicySession & { loungeUserId?: string })
+      | null;
     if (session && !session.userId && session.loungeUserId) {
       session = { ...session, userId: session.loungeUserId };
     }
     if (session?.cookie) {
       saveSession(session);
       restoredSession = true;
+    }
+    const hook = files["grok-hook.json"] as { url?: string; secret?: string } | undefined;
+    if (hook && (hook.url || hook.secret)) {
+      writeKv("grok-hook.json", hook);
     }
   }
 
