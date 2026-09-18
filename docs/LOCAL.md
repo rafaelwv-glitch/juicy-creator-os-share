@@ -38,7 +38,7 @@ npm run db:migrate
 npm run dev:local
 ```
 
-Leave `DATABASE_URL` unset unless you also turn auth on. This clone keeps auth off, so the shared `dev-user` must not sit on a shared Postgres.
+Leave `DATABASE_URL` unset unless you also turn auth on. This clone keeps auth off, so the shared `dev-user` must not sit on a shared Postgres. The web UI also writes the lounge warehouse to IndexedDB in this browser (survives a `data/` wipe on preview).
 
 ## Import your own warehouse
 

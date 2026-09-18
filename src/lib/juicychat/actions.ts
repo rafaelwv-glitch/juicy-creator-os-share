@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { gunzipSync, gzipSync } from "node:zlib";
 import { JuicyClient } from "./client";
 import { durableMiddleware } from "./durable";
 import { analyzeGrowth, recordAndAnalyze, seedHistoryFromSnapshot } from "./history";
@@ -764,3 +765,95 @@ export const savePullSchedule = createServerFn({ method: "POST" })
     const { savePullSchedule: write, packScheduleView } = await import("./pull-schedule");
     return packScheduleView(write(data));
   });
+
+function decodeGzipJson<T>(data: unknown): T {
+  if (!data || typeof data !== "object") return data as T;
+  const env = data as { encoding?: string; payload?: string };
+  if (env.encoding !== "gzip-base64" || typeof env.payload !== "string") return data as T;
+  const buf = Buffer.from(env.payload, "base64");
+  try {
+    return JSON.parse(gunzipSync(buf).toString("utf8")) as T;
+  } catch {
+    return JSON.parse(buf.toString("utf8")) as T;
+  }
+}
+
+export const getBrowserCacheStatus = createServerFn({ method: "GET" })
+  .middleware([durableMiddleware])
+  .handler(async () => {
+    const { isSampleSnapshot } = await import("./dashboard");
+    const session = loadSession();
+    const snap = loadSnapshotFile();
+    const sample = isSampleSnapshot(snap) || (!snap && !session?.cookie);
+    return {
+      sample,
+      hasWarehouse: Boolean(snap),
+      hasSession: Boolean(session?.cookie),
+      bots: snap?.bots?.length ?? 0,
+      userId: snap?.profile?.userId || snap?.userId || session?.userId || null,
+      userName: snap?.profile?.userName || session?.userName || null,
+      scrapedAt: snap?.scrapedAt ?? null,
+      keys: snap ? 1 : 0,
+    };
+  });
+
+export const exportBrowserBundle = createServerFn({ method: "POST" })
+  .middleware([durableMiddleware])
+  .handler(async () => {
+    const { collectWarehouse } = await import("./backup");
+    const { BROWSER_CACHE_FORMAT, BROWSER_CACHE_VERSION } = await import("./browser-store");
+    const { isSampleSnapshot } = await import("./dashboard");
+    const warehouse = collectWarehouse();
+    const session = loadSession();
+    const snap = warehouse.files?.["last-snapshot.json"] as
+      | { userId?: string; profile?: { userName?: string } }
+      | undefined;
+    const sample = isSampleSnapshot(snap);
+    const bundle = {
+      format: BROWSER_CACHE_FORMAT,
+      version: BROWSER_CACHE_VERSION,
+      savedAt: new Date().toISOString(),
+      session: session?.cookie ? session : null,
+      warehouse: sample ? { ...warehouse, files: {} } : warehouse,
+    };
+    const payload = gzipSync(Buffer.from(JSON.stringify(bundle))).toString("base64");
+    return { encoding: "gzip-base64" as const, payload };
+  });
+
+export const hydrateBrowserWarehouse = createServerFn({ method: "POST" })
+  .validator((input: unknown) => input)
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const decoded = decodeGzipJson<{
+      replace?: boolean;
+      session?: { cookie?: string; secretKey?: string; distinctId?: string } | null;
+      files?: Record<string, unknown>;
+      warehouse?: { files?: Record<string, unknown> };
+    }>(data);
+    const { applyBackup, clearAnalyticsFiles, WAREHOUSE_FORMAT } = await import("./backup");
+    const { discardSampleWarehouse } = await import("./dashboard");
+    if (decoded.replace) {
+      clearAnalyticsFiles({ keepSession: !decoded.session?.cookie });
+    }
+    if (decoded.session && typeof decoded.session.cookie === "string" && decoded.session.cookie.length > 8) {
+      saveSession({
+        cookie: decoded.session.cookie,
+        secretKey: String(decoded.session.secretKey || ""),
+        distinctId: String(decoded.session.distinctId || ""),
+        userId: (decoded.session as { userId?: string }).userId,
+        userName: (decoded.session as { userName?: string }).userName,
+        userNo: (decoded.session as { userNo?: string }).userNo,
+        email: (decoded.session as { email?: string }).email,
+        source: ((decoded.session as { source?: string }).source as "manual-cookie") || "manual-cookie",
+        loggedInAt: (decoded.session as { loggedInAt?: string }).loggedInAt || new Date().toISOString(),
+      });
+    }
+    const files = decoded.files || decoded.warehouse?.files || {};
+    const result = applyBackup(
+      { format: WAREHOUSE_FORMAT, files, session: decoded.session },
+      { allowCredentials: true },
+    );
+    if (decoded.session?.cookie) discardSampleWarehouse();
+    return result;
+  });
+

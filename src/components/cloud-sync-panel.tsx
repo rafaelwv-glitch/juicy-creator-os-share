@@ -3,6 +3,7 @@ import { Cloud, Loader2, RefreshCw, Smartphone } from "lucide-react";
 import { getCloudLoungeStatus } from "@/lib/juicychat/actions";
 import { postCloudRefresh } from "@/lib/juicychat/cloud-refresh";
 import { formatWhen } from "@/lib/juicychat/format";
+import { getBrowserStoreId, withBrowserHeaders } from "@/lib/juicychat/browser-store";
 
 type Status = Awaited<ReturnType<typeof getCloudLoungeStatus>>;
 
@@ -25,7 +26,10 @@ export function CloudSyncPanel({ className = "" }: { className?: string }) {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);
     });
-    void fetch("/api/lounge/pair", { credentials: "include" })
+    void fetch("/api/lounge/pair", {
+      credentials: "include",
+      headers: withBrowserHeaders(),
+    })
       .then((r) => r.json())
       .then((d) => {
         if (d?.pair) setPair(d.pair);
@@ -55,8 +59,8 @@ export function CloudSyncPanel({ className = "" }: { className?: string }) {
       const res = await fetch("/api/lounge/pair", {
         method: "POST",
         credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "mint" }),
+        headers: withBrowserHeaders({ "content-type": "application/json" }),
+        body: JSON.stringify({ action: "mint", browserStoreId: getBrowserStoreId() }),
       });
       const data = (await res.json()) as { pair?: { code: string; expiresAt: string }; error?: string };
       if (!res.ok || !data.pair) throw new Error(data.error || "Could not mint pairing code");

@@ -12,6 +12,7 @@ import {
 import { MobileNav, DesktopNavLinks } from "@/components/mobile-nav";
 import { formatAgo, formatWhen } from "@/lib/juicychat/format";
 import type { PublishQueue, PublishQueueRow, PublishResult } from "@/lib/juicychat/publish-bots";
+import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/publish")({ component: PublishPage });
 
@@ -167,6 +168,7 @@ function PublishPage() {
     (async () => {
       setLoading(true);
       try {
+        await browserCacheReady();
         const cached = (await loadPublishQueueCached()) as PublishQueue;
         if (!cancelled) applyQueue(cached);
         if (!cancelled) await reloadJobs();

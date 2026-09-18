@@ -7,6 +7,7 @@ import {
   loadCreatorDashboard,
 } from "@/lib/juicychat/actions";
 import { postCloudRefresh } from "@/lib/juicychat/cloud-refresh";
+import { browserCacheReady, loadBrowserBundle, readBrowserMeta, rememberBrowserCache } from "@/lib/juicychat/browser-sync";
 import { DesktopNavLinks, MobileNav } from "@/components/mobile-nav";
 import { UserButton } from "@/lib/auth/gates";
 import { isCompanion } from "@/lib/auth/device-client";
@@ -51,11 +52,26 @@ export function useOsSession() {
     setCompanion(isCompanion());
     void (async () => {
       try {
+        const meta = await browserCacheReady();
         await reloadAuth();
         await reloadDash();
         try {
           const s = await getCloudLoungeStatus();
-          setPersist((s as { persist?: PersistHealth }).persist || null);
+          const persist = (s as { persist?: PersistHealth }).persist || null;
+          const fromIdb = meta || readBrowserMeta(await loadBrowserBundle());
+          if (persist || fromIdb?.live) {
+            setPersist({
+              ...(persist || {}),
+              browserCache: fromIdb?.live || persist?.browserScoped,
+              browserSavedAt: fromIdb?.savedAt || null,
+              durable: Boolean(persist?.durable || fromIdb?.live),
+              hasSession: Boolean(persist?.hasSession || fromIdb?.hasSession),
+              bots: fromIdb?.bots || persist?.bots,
+              snapshotAt: persist?.snapshotAt || fromIdb?.savedAt || null,
+            });
+          } else {
+            setPersist(persist);
+          }
           const j = (s as { jobs?: ClockJob[] }).jobs;
           if (Array.isArray(j)) setJobs(j);
         } catch {
@@ -90,6 +106,7 @@ export function useOsSession() {
       }
       setMsg(res.message);
       setOk(res.ok);
+      void rememberBrowserCache();
     } catch (e) {
       try {
         await reloadDash();
