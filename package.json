@@ -111,7 +111,7 @@
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12"
   },
-  "description": "Shareable JuicyChat creator dashboard \u2014 no accounts, no keys",
+  "description": "Shareable JuicyChat creator dashboard — no accounts, no keys",
   "license": "MIT",
   "author": "Juicy Creator OS contributors",
   "build": {
@@ -139,9 +139,24 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] },
-        { "target": "zip", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "Juicy-Creator-OS-${version}-win-${arch}.${ext}",
       "executableName": "Juicy-Creator-OS",
@@ -171,6 +186,6 @@
     },
     "asar": false
   },
-  "version": "1.0.1",
+  "version": "1.1.0",
   "main": "desktop/main.mjs"
 }
