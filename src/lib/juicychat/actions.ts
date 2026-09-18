@@ -509,7 +509,7 @@ export const loadReportBundle = createServerFn({ method: "GET" })
 export const listRivals = createServerFn({ method: "GET" })
   .middleware([durableMiddleware])
   .handler(async () => {
-  const { loadRivals, buildCompare, syncNeighborRoster } = await import("./rivals");
+  const { loadRivals, buildCompare, listTrackedCreators, syncNeighborRoster } = await import("./rivals");
   const snap = loadSnapshotFile();
   const session = loadSession();
   const youId = session?.userId || snap?.userId || snap?.profile?.userId;
@@ -521,6 +521,7 @@ export const listRivals = createServerFn({ method: "GET" })
   return {
     file: loadRivals(),
     compare: buildCompare(snap, youId),
+    tracked: listTrackedCreators(snap, youId),
   };
 });
 
@@ -617,6 +618,28 @@ export const refreshAllRivals = createServerFn({ method: "POST" })
     compare: buildCompare(snap, session?.userId || snap?.userId || snap?.profile?.userId),
   };
 });
+
+export const compareTrackedCreators = createServerFn({ method: "POST" })
+  .validator((input: { leftId: string; rightId: string }) => input)
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { buildPairCompare, listTrackedCreators } = await import("./rivals");
+    const snap = loadSnapshotFile();
+    const session = loadSession();
+    const youId = session?.userId || snap?.userId || snap?.profile?.userId || null;
+    const leftId = String(data.leftId || "").trim();
+    const rightId = String(data.rightId || "").trim();
+    if (!leftId || !rightId) {
+      return {
+        pair: null,
+        tracked: listTrackedCreators(snap, youId),
+      };
+    }
+    return {
+      pair: buildPairCompare(leftId, rightId, snap, youId),
+      tracked: listTrackedCreators(snap, youId),
+    };
+  });
 
 // ── Full creator dashboard ───────────────────────────────────
 export const loadCreatorDashboard = createServerFn({ method: "GET" })
