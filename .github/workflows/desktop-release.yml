@@ -3,6 +3,8 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   linux:
     runs-on: ubuntu-latest
@@ -22,6 +24,14 @@ jobs:
             release/*.AppImage
             release/*.tar.gz
           if-no-files-found: error
+      - name: Attach Linux packages to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" release/*.AppImage release/Juicy-Creator-OS-*.tar.gz --clobber
   windows:
     runs-on: windows-latest
     timeout-minutes: 40
@@ -42,3 +52,16 @@ jobs:
             release/*.exe
             release/*.zip
           if-no-files-found: error
+      - name: Attach Windows packages to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          gh release view $env:GITHUB_REF_NAME 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:GITHUB_REF_NAME --title $env:GITHUB_REF_NAME --generate-notes
+          }
+          $files = @(Get-ChildItem -Path release -File | Where-Object { $_.Extension -in '.exe','.zip' } | ForEach-Object { $_.FullName })
+          if ($files.Count -eq 0) { throw "no windows packages in release/" }
+          gh release upload $env:GITHUB_REF_NAME @files --clobber
