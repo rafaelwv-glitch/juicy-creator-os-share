@@ -2,6 +2,11 @@
  * Isomorphic middleware: hydrate THIS account's lounge files around a server fn.
  * Forwards the live-preview bearer (partitioned iframe cookies can't carry the
  * session) and the Android companion device token.
+ *
+ * Shareable clone: app OAuth is off (`VITE_AUTH_ENABLED` ≠ true). Without a
+ * session or device token, fall back to DEV_USER_ID so JuicyChat magic-link /
+ * password connect works on Vercel. Do not throw Unauthorized in that mode —
+ * that was blocking lounge login with a 401.
  */
 import { createMiddleware } from "@tanstack/react-start";
 
@@ -18,7 +23,9 @@ export const durableMiddleware = createMiddleware({ type: "function" })
     });
   })
   .server(async ({ next, context }) => {
-    const { getSessionUser, UnauthorizedError } = await import("@/lib/auth/verify.server");
+    const { getSessionUser, UnauthorizedError, DEV_USER_ID, authConfigured } = await import(
+      "@/lib/auth/verify.server"
+    );
     const { getRequest } = await import("@tanstack/react-start/server");
     const { userIdFromDeviceToken, DEVICE_HEADER } = await import("./identity");
     const ctx = context as { bearerToken?: string; deviceToken?: string };
@@ -42,6 +49,7 @@ export const durableMiddleware = createMiddleware({ type: "function" })
       const { pickUserWithData } = await import("./user-kv");
       userId = (await pickUserWithData([sessionId, deviceId])) || sessionId;
     }
+    if (!userId && !authConfigured) userId = DEV_USER_ID;
     if (!userId) throw new UnauthorizedError();
     const { hydrateLoungeVault, applyLoungeVaultCookie } = await import("./lounge-vault");
     hydrateLoungeVault(req);
