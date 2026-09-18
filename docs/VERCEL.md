@@ -31,7 +31,7 @@ vercel --prod
 
 - `/` — sample dashboard
 - `/api/health` — `{ "ok": true, "grokAuth": false, ... }`
-- Connecting a real JuicyChat session on Vercel stores files in the function tmp dir (ephemeral). For a durable lounge, use the **local** or **desktop** branch.
+- Connecting a real JuicyChat session: use **JuicyChat source** on the dashboard (magic link / password / cookie). Do **not** use `/login` — app OAuth is off. The session is stored in HttpOnly cookies plus `/tmp` (ephemeral across cold starts). For a durable lounge, use the **local** or **desktop** branch.
 
 ## Cron (optional)
 
