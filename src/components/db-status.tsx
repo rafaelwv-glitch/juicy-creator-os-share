@@ -32,6 +32,9 @@ export type PersistHealth = {
   lastPullKind?: string | null;
   lastOkPullAt?: string | null;
   lastOkPullMessage?: string | null;
+  dataDir?: string | null;
+  pgliteDir?: string | null;
+  clientHome?: string | null;
 };
 
 type PublicHealth = {
@@ -44,6 +47,9 @@ type PublicHealth = {
   schema?: boolean;
   schemaSolid?: boolean;
   error?: string | null;
+  dataDir?: string | null;
+  pgliteDir?: string | null;
+  clientHome?: string | null;
 };
 
 function tone(h: {
@@ -52,11 +58,12 @@ function tone(h: {
   durable?: boolean;
   local?: boolean;
   browserCache?: boolean;
+  pgliteDir?: string | null;
 }) {
   if (h.ok === false) return "danger" as const;
+  if (h.pgliteDir || (h.db === "pglite" && h.durable)) return "success" as const;
   if (h.browserCache) return "success" as const;
   if (h.db === "neon" && h.durable !== false) return "success" as const;
-  if (h.db === "pglite" && h.durable) return "success" as const;
   if (h.db === "pglite") return "warning" as const;
   return "muted" as const;
 }
@@ -66,7 +73,9 @@ function engineName(h: {
   local?: boolean;
   durable?: boolean;
   browserCache?: boolean;
+  pgliteDir?: string | null;
 }) {
+  if (h.pgliteDir || (h.db === "pglite" && h.durable)) return "Local PGLite";
   if (h.browserCache) return "This browser";
   if (h.db === "neon") return h.local ? "Local Postgres" : "Neon";
   if (h.db === "pglite") return h.durable ? "Local PGLite" : "Preview DB";
@@ -177,9 +186,9 @@ export function DbStatusIndicator({ persist }: { persist?: PersistHealth | null 
   }
   const t = tone(h);
   const rows: Array<[string, string]> = [
-    ["Engine", engineName(h) + (h.db === "pglite" && !h.durable && !h.browserCache ? " (embedded)" : "")],
+    ["Engine", engineName(h) + (h.db === "pglite" && !h.durable && !h.pgliteDir && !h.browserCache ? " (embedded)" : "")],
     ["Reachable", h.ok === false ? persist?.error || live?.error || "no" : `yes${h.latencyMs != null ? ` · ${h.latencyMs}ms` : ""}`],
-    ["Browser cache", persist?.browserCache ? "IndexedDB" : "empty"],
+    ["Local DB", persist?.pgliteDir || persist?.dataDir || (persist?.browserCache ? "IndexedDB" : "none")],
     ["JuicyChat session", persist?.hasSession ? "saved" : "none"],
     [
       "Grok webhook",
@@ -216,12 +225,12 @@ export function DbStatusIndicator({ persist }: { persist?: PersistHealth | null 
         <span className={`size-1.5 rounded-full ${DOT[t]}`} />
         <Database className="size-3" />
         {label(h)}
-        {h.browserCache ? " · saved" : (h.db === "neon" || h.durable) && h.ok !== false ? " · saved" : h.db === "pglite" ? " · local" : ""}
+        {h.pgliteDir || h.durable ? " · saved" : h.browserCache ? " · saved" : h.db === "pglite" ? " · local" : ""}
       </button>
       {open ? (
         <div className="absolute left-0 z-30 mt-2 w-72 rounded-xl border border-border bg-surface p-3 text-left shadow-xl">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">
-            {h.browserCache ? "Stored in this browser" : "Stored in database"}
+            {h.pgliteDir || h.dataDir ? "Stored on this machine" : h.browserCache ? "Stored in this browser" : "Stored in database"}
           </div>
           <dl className="space-y-1.5 text-[12px]">
             {rows.map(([k, v]) => (
@@ -266,25 +275,27 @@ export function DatabaseStatusPanel({ persist }: { persist?: PersistHealth | nul
   const title =
     h.ok === false
       ? "Database unreachable"
-      : h.browserCache
-        ? "This browser · IndexedDB"
-        : h.db === "neon"
-          ? h.local
-            ? "Local Postgres · connected"
-            : "Neon Postgres · connected"
-          : h.db === "pglite"
-            ? h.durable
-              ? "Local PGLite · file-backed"
-              : "Preview database · local"
-            : "Checking database…";
+      : h.pgliteDir || (h.db === "pglite" && h.durable)
+        ? "Local PGLite · file-backed"
+        : h.browserCache
+          ? "This browser · IndexedDB"
+          : h.db === "neon"
+            ? h.local
+              ? "Local Postgres · connected"
+              : "Neon Postgres · connected"
+            : h.db === "pglite"
+              ? "Preview database · local"
+              : "Checking database…";
   const blurb =
     h.ok === false
       ? h.error || "Webhook, history, and schedules cannot be saved until this recovers."
-      : h.browserCache
-        ? "JuicyChat session and warehouse stay in this browser. They are not written to the shared Vercel isolate."
-        : h.db === "neon" || h.durable
-          ? "Webhook, settings, history, and scheduled publishes are saved here."
-          : "This preview resets on restart. Use Docker Postgres or file-backed PGLite to persist.";
+      : h.pgliteDir || h.dataDir
+        ? `Reads and writes ${h.clientHome || h.dataDir}. Copy that folder to back up.`
+        : h.browserCache
+          ? "JuicyChat session and warehouse stay in this browser. They are not written to the shared Vercel isolate."
+          : h.db === "neon" || h.durable
+            ? "Webhook, settings, history, and scheduled publishes are saved here."
+            : "This preview resets on restart. Use Docker Postgres or file-backed PGLite to persist.";
 
   return (
     <section className={`rounded-xl border p-4 sm:p-5 ${CARD[t]}`}>
@@ -306,6 +317,7 @@ export function DatabaseStatusPanel({ persist }: { persist?: PersistHealth | nul
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Cell label="Session" value={persist?.hasSession ? "saved" : "none"} ok={Boolean(persist?.hasSession)} />
+        <Cell label="Disk DB" value={h.pgliteDir ? "PGLite" : h.dataDir ? "files" : "none"} ok={Boolean(h.pgliteDir || h.dataDir)} />
         <Cell label="Browser" value={persist?.browserCache ? "IndexedDB" : "empty"} ok={Boolean(persist?.browserCache)} />
         <Cell
           label="Webhook"
@@ -329,6 +341,11 @@ export function DatabaseStatusPanel({ persist }: { persist?: PersistHealth | nul
           ok={(persist?.scheduledJobs ?? 0) > 0}
         />
       </div>
+      {h.clientHome || h.dataDir ? (
+        <p className="mt-3 break-all rounded-lg border border-border bg-bg/50 px-3 py-2 font-mono text-[11px] text-muted">
+          {h.clientHome || h.dataDir}
+        </p>
+      ) : null}
       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-bg/50 px-3 py-2">
           <div className="text-[10px] uppercase tracking-wide text-faint">Last successful full</div>

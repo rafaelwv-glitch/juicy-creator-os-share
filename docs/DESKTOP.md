@@ -46,6 +46,19 @@ Outputs under `release/`:
 
 Unsigned. Windows SmartScreen may warn on first run — More info → Run anyway.
 
+## Where data lives
+
+The desktop app writes a local PGLite database (not the AppImage mount / Program Files):
+
+| Build | Folder |
+| --- | --- |
+| Linux AppImage / tar | `~/.config/Juicy Creator OS/` |
+| Windows installer | `%APPDATA%\Juicy Creator OS\` |
+| Windows portable | `Juicy Creator OS Data\` next to the `.exe` |
+| macOS | `~/Library/Application Support/Juicy Creator OS/` |
+
+`lounge/` = JSON warehouse, `pglite/` = embedded Postgres. Both are read and written on login and scrape. Copy the folder to back up. Uninstall does **not** delete it (`deleteAppDataOnUninstall: false`).
+
 ## Smoke
 
 ```bash

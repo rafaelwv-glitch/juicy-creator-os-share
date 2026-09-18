@@ -4,6 +4,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolvePgliteDir } from "./lounge-home.mjs";
 
 export function loadLocalEnv(cwd = process.cwd()) {
   for (const name of [".env.local", ".env"]) {
@@ -37,7 +38,7 @@ export function databaseUrl() {
 export function pgliteDataDir(cwd = process.cwd()) {
   const forced = process.env.PGLITE_DATA_DIR?.trim();
   if (forced) return forced;
-  return resolve(cwd, "data", "pglite");
+  return resolvePgliteDir() || resolve(cwd, "data", "pglite");
 }
 
 export function isServerless() {
