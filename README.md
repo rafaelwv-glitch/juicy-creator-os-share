@@ -8,7 +8,7 @@ The UI boots on anonymous **sample bots** (`fixtures/warehouse-sample.json`). Co
 | --- | --- |
 | [`vercel`](./docs/VERCEL.md) | Hosted web app. One-click Vercel deploy. |
 | [`local`](./docs/LOCAL.md) | Laptop installer (`scripts/install-local.sh`). |
-| [`desktop`](./docs/DESKTOP.md) | Electron window + Linux AppImage / tarball. |
+| [`desktop`](./docs/DESKTOP.md) | Electron window + Linux AppImage / tarball + Windows exe. |
 
 Default branch is `vercel`.
 
