@@ -117,7 +117,20 @@ export const getGrowthAnalysis = createServerFn({ method: "GET" })
 export const getTimingAnalysis = createServerFn({ method: "GET" })
   .middleware([durableMiddleware])
   .handler(async () => {
-  return analyzeTiming();
+  try {
+    return analyzeTiming();
+  } catch (e) {
+    console.warn("[timing] analyze failed", e);
+    return analyzeTiming({
+      version: 1,
+      timezone: "Europe/Madrid",
+      events: [],
+      lastScrapedAt: null,
+      lastApiTotal: null,
+      pagesFetched: 0,
+      lookbackDays: 30,
+    });
+  }
 });
 
 export const refreshNotifications = createServerFn({ method: "POST" })

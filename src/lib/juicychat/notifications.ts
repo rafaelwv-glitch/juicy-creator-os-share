@@ -401,8 +401,10 @@ function emptyGrid(): GridCell[][] {
 }
 
 function addToGrid(grid: GridCell[][], ev: NotifEvent, timeZone: string) {
-  const { day, hour } = partsInTz(ev.ts, timeZone);
-  const cell = grid[day]![hour]!;
+  const ts = typeof ev.ts === "number" && Number.isFinite(ev.ts) ? ev.ts : Date.now();
+  const { day, hour } = partsInTz(ts, timeZone);
+  const cell = grid[day]?.[hour];
+  if (!cell) return;
   if (ev.kind === "like") cell.likes++;
   else if (ev.kind === "favorite") cell.favorites++;
   else if (ev.kind === "follow") cell.follows++;
@@ -490,6 +492,7 @@ function loadBotTags(): Map<string, { name: string; tags: string[] }> {
 
 export function analyzeTiming(store?: NotifStore): TimingAnalysis {
   const s = store ?? loadNotifStore();
+  const events = Array.isArray(s?.events) ? s.events : [];
   const botMeta = loadBotTags();
   const grid = emptyGrid();
   const byBot = new Map<
@@ -508,9 +511,12 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
   let minTs = Infinity;
   let maxTs = 0;
 
-  for (const ev of s.events) {
-    addToGrid(grid, ev, s.timezone);
-    byKind[ev.kind] = (byKind[ev.kind] || 0) + 1;
+  for (const raw of events) {
+    if (!raw || typeof raw !== "object") continue;
+    const ev = raw as NotifEvent;
+    const characterId = String(ev.characterId || ev.characterName || "unknown");
+    addToGrid(grid, { ...ev, characterId }, s?.timezone || TZ);
+    if (ev.kind) byKind[ev.kind] = (byKind[ev.kind] || 0) + 1;
     if (ev.kind === "like") likeCount++;
     else if (ev.kind === "favorite") favoriteCount++;
     else if (ev.kind === "follow") followCount++;
@@ -518,24 +524,23 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
     else if (ev.kind === "gift") giftCount++;
     else if (ev.kind === "reward") rewardCount++;
     else if (ev.kind === "audit") auditCount++;
-    if (ev.ts < minTs) minTs = ev.ts;
-    if (ev.ts > maxTs) maxTs = ev.ts;
+    if (typeof ev.ts === "number" && ev.ts < minTs) minTs = ev.ts;
+    if (typeof ev.ts === "number" && ev.ts > maxTs) maxTs = ev.ts;
 
-    let row = byBot.get(ev.characterId);
+    let row = byBot.get(characterId);
     if (!row) {
       row = {
-        name: botMeta.get(ev.characterId)?.name || ev.characterName,
+        name: botMeta.get(characterId)?.name || ev.characterName || characterId,
         likes: 0,
         favorites: 0,
         grid: emptyGrid(),
       };
-      byBot.set(ev.characterId, row);
+      byBot.set(characterId, row);
     }
     if (ev.kind === "like") row.likes++;
-    else row.favorites++;
-    addToGrid(row.grid, ev, s.timezone);
-    // keep freshest name from events
-    if (ev.characterName) row.name = botMeta.get(ev.characterId)?.name || ev.characterName;
+    else if (ev.kind === "favorite") row.favorites++;
+    addToGrid(row.grid, { ...ev, characterId }, s?.timezone || TZ);
+    if (ev.characterName) row.name = botMeta.get(characterId)?.name || ev.characterName;
   }
 
   const heatmap: HeatCell[] = [];
@@ -562,9 +567,9 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
       const byDay = dayTotals(row.grid).map((d) => d.total);
       const byHour = hourTotals(row.grid).map((h) => h.total);
       return {
-        characterId,
-        characterName: row.name,
-        tags,
+        characterId: String(characterId || "unknown"),
+        characterName: row.name || String(characterId || "unknown"),
+        tags: Array.isArray(tags) ? tags : [],
         likes: row.likes,
         favorites: row.favorites,
         total: row.likes + row.favorites,
@@ -619,8 +624,8 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
     .sort((a, b) => b.total - a.total);
 
   return {
-    timezone: s.timezone,
-    eventCount: s.events.length,
+    timezone: s?.timezone || TZ,
+    eventCount: events.length,
     likeCount,
     favoriteCount,
     followCount,
@@ -632,16 +637,16 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
     uniqueBots: bots.length,
     rangeStart: Number.isFinite(minTs) ? new Date(minTs).toISOString() : null,
     rangeEnd: Number.isFinite(maxTs) ? new Date(maxTs).toISOString() : null,
-    lastScrapedAt: s.lastScrapedAt,
-    lastApiTotal: s.lastApiTotal,
-    pagesFetched: s.pagesFetched,
-    lookbackDays: s.lookbackDays,
+    lastScrapedAt: s?.lastScrapedAt ?? null,
+    lastApiTotal: s?.lastApiTotal ?? null,
+    pagesFetched: s?.pagesFetched ?? 0,
+    lookbackDays: s?.lookbackDays ?? 30,
     heatmap,
     overallBestSlots: slotsFromGrid(grid, 8),
     byDayOfWeek: dayTotals(grid),
     byHour: hourTotals(grid),
     bots,
     tags,
-    recentEvents: s.events.slice(0, 40),
+    recentEvents: events.slice(0, 40),
   };
 }
