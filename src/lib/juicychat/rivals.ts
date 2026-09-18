@@ -10,6 +10,7 @@ import type { LeaderboardBoard } from "./deep-signals";
 import {
   analyzeRivalMrt,
   compactRivalMrtDay,
+  pairMrtFromSnapshots,
   pickNeighbors,
   type RivalMrt,
   type RivalMrtDay,
@@ -25,7 +26,7 @@ export const MAX_MRT_LOG = 90;
 export const MAX_ALUMNI = 80;
 
 export type { RivalMrt, RivalMrtDay, RivalRankSeed, RivalSource } from "./rival-mrt";
-export { pickNeighbors, compactRivalMrtDay } from "./rival-mrt";
+export { pickNeighbors, compactRivalMrtDay, pairMrtFromSnapshots } from "./rival-mrt";
 
 export type RivalTotals = {
   bots: number;
@@ -104,6 +105,28 @@ export type RivalCompareResult = {
   neighbors?: ReturnType<typeof pickNeighbors>;
   /** Warehouse-backed MRT for the signed-in lounge — never scraped as a rival. */
   youMrt: RivalMrt | null;
+};
+
+export type TrackedCreatorRef = {
+  userId: string;
+  userName: string;
+  isYou: boolean;
+  source?: RivalSource | "you" | "alumni";
+  rank30d?: number | null;
+  hasSnapshot: boolean;
+  hasMrt: boolean;
+};
+
+export type PairCompareResult = {
+  leftId: string;
+  rightId: string;
+  leftName: string;
+  rightName: string;
+  leftIsYou: boolean;
+  rightIsYou: boolean;
+  leftMrt: RivalMrt | null;
+  rightMrt: RivalMrt | null;
+  same: boolean;
 };
 
 const TZ = "Europe/Madrid";
@@ -1007,5 +1030,182 @@ export function buildCompare(
     youUserId: youId ? String(youId) : null,
     neighbors,
     youMrt,
+  };
+}
+
+function findTrackedEntry(file: RivalsFile, userId: string): RivalEntry | null {
+  const id = String(userId);
+  return file.rivals.find((r) => r.userId === id) || file.alumni?.find((r) => r.userId === id) || null;
+}
+
+function snapshotForCreator(
+  userId: string,
+  youSnapshot: LoungeSnapshot | null | undefined,
+  youId: string | null,
+  file: RivalsFile,
+): LoungeSnapshot | null {
+  const id = String(userId || "");
+  if (!id) return null;
+  if (youId && id === String(youId) && youSnapshot) return youSnapshot;
+  return findTrackedEntry(file, id)?.lastSnapshot || null;
+}
+
+function historyDeltas(entry: RivalEntry | null): { dod: number | null; d7: number | null } {
+  const days = entry?.history || [];
+  const latest = days[days.length - 1];
+  const prev = days.length >= 2 ? days[days.length - 2] : null;
+  const d7 = days.length >= 2 ? days[Math.max(0, days.length - 7)] : null;
+  return {
+    dod: latest && prev ? latest.totals.chats - prev.totals.chats : null,
+    d7: latest && d7 ? latest.totals.chats - d7.totals.chats : null,
+  };
+}
+
+function rankForCreator(
+  userId: string,
+  youId: string | null,
+  entry: RivalEntry | null,
+): number | null {
+  if (youId && String(userId) === String(youId)) {
+    const board = loadBoardsFromDisk().find((b) => b.id === "c_30d_all") || null;
+    return pickNeighbors(board, NEIGHBOR_N).you?.rank ?? board?.yourRank ?? null;
+  }
+  return entry?.neighborRank ?? entry?.mrt?.rank30d ?? entry?.boardRanks?.c_30d_all ?? null;
+}
+
+function nameForCreator(
+  userId: string,
+  youSnapshot: LoungeSnapshot | null | undefined,
+  youId: string | null,
+  entry: RivalEntry | null,
+): string {
+  if (youId && String(userId) === String(youId)) {
+    return youSnapshot?.profile?.userName || entry?.userName || "You";
+  }
+  return entry?.label || entry?.userName || userId;
+}
+
+export function listTrackedCreators(
+  youSnapshot?: LoungeSnapshot | null,
+  youUserId?: string | null,
+  fileArg?: RivalsFile,
+): TrackedCreatorRef[] {
+  const file = fileArg || loadRivals();
+  const compare = buildCompare(youSnapshot, youUserId, file);
+  const seen = new Set<string>();
+  const refs: TrackedCreatorRef[] = [];
+  for (const r of compare.rows) {
+    seen.add(r.userId);
+    const entry = r.isYou ? null : findTrackedEntry(file, r.userId);
+    refs.push({
+      userId: r.userId,
+      userName: r.userName,
+      isYou: r.isYou,
+      source: r.source,
+      rank30d: r.rank30d,
+      hasSnapshot: r.isYou ? Boolean(youSnapshot) : Boolean(entry?.lastSnapshot),
+      hasMrt: r.isYou ? Boolean(compare.youMrt) : Boolean(entry?.mrt),
+    });
+  }
+  for (const a of file.alumni || []) {
+    if (seen.has(a.userId)) continue;
+    refs.push({
+      userId: a.userId,
+      userName: a.label || a.userName || a.userId,
+      isYou: false,
+      source: "alumni",
+      rank30d: a.neighborRank ?? a.mrt?.rank30d ?? null,
+      hasSnapshot: Boolean(a.lastSnapshot),
+      hasMrt: Boolean(a.mrt),
+    });
+  }
+  return refs;
+}
+
+export function buildPairCompare(
+  leftId: string,
+  rightId: string,
+  youSnapshot?: LoungeSnapshot | null,
+  youUserId?: string | null,
+  fileArg?: RivalsFile,
+): PairCompareResult {
+  const file = fileArg || loadRivals();
+  const youId = youUserId || youSnapshot?.userId || youSnapshot?.profile?.userId || null;
+  const left = String(leftId || "");
+  const right = String(rightId || "");
+  const leftEntry = findTrackedEntry(file, left);
+  const rightEntry = findTrackedEntry(file, right);
+  const leftSnap = snapshotForCreator(left, youSnapshot, youId, file);
+  const rightSnap = snapshotForCreator(right, youSnapshot, youId, file);
+  const leftIsYou = Boolean(youId && left && left === String(youId));
+  const rightIsYou = Boolean(youId && right && right === String(youId));
+  const boards = loadBoardsFromDisk();
+  const discovery = loadDiscoveryFromDisk();
+  const leftHist = historyDeltas(leftEntry);
+  const rightHist = historyDeltas(rightEntry);
+  const youGrowth = leftIsYou || rightIsYou ? loadGrowthDeltas() : null;
+  const leftDod = leftIsYou ? youGrowth?.dayOverDay?.chats ?? null : leftHist.dod;
+  const leftD7 = leftIsYou ? youGrowth?.last7Days?.chats ?? null : leftHist.d7;
+  const rightDod = rightIsYou ? youGrowth?.dayOverDay?.chats ?? null : rightHist.dod;
+  const rightD7 = rightIsYou ? youGrowth?.last7Days?.chats ?? null : rightHist.d7;
+  const leftRank = rankForCreator(left, youId, leftEntry);
+  const rightRank = rankForCreator(right, youId, rightEntry);
+
+  let leftMrt: RivalMrt | null = null;
+  let rightMrt: RivalMrt | null = null;
+  if (leftSnap && rightSnap) {
+    const pair = pairMrtFromSnapshots(leftSnap, rightSnap, {
+      leftRank30d: leftRank,
+      rightRank30d: rightRank,
+      leftDodChats: leftDod,
+      leftD7Chats: leftD7,
+      rightDodChats: rightDod,
+      rightD7Chats: rightD7,
+      boards,
+      discovery,
+    });
+    leftMrt = pair.leftMrt;
+    rightMrt = pair.rightMrt;
+  } else {
+    if (leftSnap) {
+      leftMrt = analyzeRivalMrt({
+        rival: leftSnap,
+        you: leftSnap,
+        rank30d: leftRank,
+        dodChats: leftDod,
+        d7Chats: leftD7,
+        boards,
+        discovery,
+      });
+    } else if (leftIsYou && youSnapshot) {
+      leftMrt = youMrtFromWarehouse(youSnapshot, leftRank, loadGrowthDeltas());
+    } else {
+      leftMrt = leftEntry?.mrt ?? null;
+    }
+    if (rightSnap) {
+      rightMrt = analyzeRivalMrt({
+        rival: rightSnap,
+        you: leftSnap,
+        rank30d: rightRank,
+        dodChats: rightDod,
+        d7Chats: rightD7,
+        boards,
+        discovery,
+      });
+    } else {
+      rightMrt = rightEntry?.mrt ?? null;
+    }
+  }
+
+  return {
+    leftId: left,
+    rightId: right,
+    leftName: nameForCreator(left, youSnapshot, youId, leftEntry),
+    rightName: nameForCreator(right, youSnapshot, youId, rightEntry),
+    leftIsYou,
+    rightIsYou,
+    leftMrt,
+    rightMrt,
+    same: Boolean(left && right && left === right),
   };
 }
