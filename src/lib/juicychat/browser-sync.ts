@@ -8,9 +8,12 @@ import {
   gzipJsonToEnvelope,
   isLiveBrowserBundle,
   loadBrowserBundle,
+  mergeBrowserBundles,
   readBrowserMeta,
   requestBrowserPersist,
   saveBrowserBundle,
+  sessionLooksLive,
+  warehouseHasLiveRivals,
   type BrowserCacheBundle,
   type BrowserCacheMeta,
   type BrowserWarehouse,
@@ -36,11 +39,13 @@ type ServerStatus = {
   sample?: boolean;
   hasWarehouse?: boolean;
   hasSession?: boolean;
+  hasRivals?: boolean;
   bots?: number;
   userId?: string | null;
   userName?: string | null;
   scrapedAt?: string | null;
   keys?: number;
+  rivalCount?: number;
 };
 
 function fileEntries(w: BrowserWarehouse | null): Array<[string, unknown]> {
@@ -52,9 +57,9 @@ async function hydrateChunks(bundle: BrowserCacheBundle): Promise<void> {
   const files = fileEntries(bundle.warehouse);
   if (!files.length && bundle.session) {
     const env = await gzipJsonToEnvelope({
-      replace: true,
+      replace: false,
       session: bundle.session,
-      files: {},
+      files: sessionLooksLive(bundle.session) ? { "juicy-session.json": bundle.session } : {},
     });
     await hydrateBrowserWarehouse({ data: env });
     return;
@@ -90,6 +95,17 @@ async function pullServerBundle(): Promise<BrowserCacheBundle | null> {
   return bundle;
 }
 
+function serverNeedsHydrate(status: ServerStatus, local: BrowserCacheBundle | null): boolean {
+  const serverEmpty = !status.hasWarehouse || status.sample;
+  const serverNoSession = !status.hasSession;
+  const serverNoRivals = !status.hasRivals;
+  if (!local) return false;
+  if (sessionLooksLive(local.session) && serverNoSession) return true;
+  if (warehouseHasLiveRivals(local.warehouse) && serverNoRivals) return true;
+  if (isLiveBrowserBundle(local) && serverEmpty) return true;
+  return false;
+}
+
 async function syncOnce(): Promise<BrowserCacheMeta | null> {
   if (typeof window === "undefined") return null;
   getBrowserStoreId();
@@ -104,14 +120,15 @@ async function syncOnce(): Promise<BrowserCacheMeta | null> {
     } catch {
       status = {};
     }
-    const serverEmpty = !status.hasWarehouse || status.sample;
-    const serverNoSession = !status.hasSession;
 
-    if (localLive && (serverEmpty || (local?.session && serverNoSession))) {
+    if (localLive && serverNeedsHydrate(status, local)) {
       await hydrateChunks(local!);
     } else if (status.hasWarehouse && !status.sample) {
       const remote = await pullServerBundle();
-      if (isLiveBrowserBundle(remote) && remote) await saveBrowserBundle(remote);
+      if (remote) {
+        const merged = mergeBrowserBundles(local, remote);
+        if (isLiveBrowserBundle(merged)) await saveBrowserBundle(merged);
+      }
     } else if (localLive && local) {
       await saveBrowserBundle(local);
     }
@@ -132,9 +149,15 @@ export async function rememberBrowserCache(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   beginBrowserPull();
   try {
+    const local = await loadBrowserBundle();
     const remote = await pullServerBundle();
-    if (!isLiveBrowserBundle(remote) || !remote) return false;
-    return saveBrowserBundle(remote);
+    if (!remote) {
+      if (local && isLiveBrowserBundle(local)) return saveBrowserBundle(local);
+      return false;
+    }
+    const merged = mergeBrowserBundles(local, remote);
+    if (!isLiveBrowserBundle(merged)) return false;
+    return saveBrowserBundle(merged);
   } catch {
     return false;
   } finally {
@@ -148,11 +171,24 @@ function scheduleRemember() {
   rememberTimer = window.setTimeout(() => {
     rememberTimer = null;
     void rememberBrowserCache();
-  }, 900);
+  }, 250);
+}
+
+function flushRemember() {
+  if (typeof window === "undefined") return;
+  if (rememberTimer != null) {
+    window.clearTimeout(rememberTimer);
+    rememberTimer = null;
+  }
+  void rememberBrowserCache();
 }
 
 if (typeof window !== "undefined") {
-  setBrowserRememberScheduler(scheduleRemember);
+  setBrowserRememberScheduler(scheduleRemember, flushRemember);
+  window.addEventListener("pagehide", () => flushRemember());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushRemember();
+  });
 }
 
 export async function forgetBrowserCache(): Promise<void> {

@@ -20,6 +20,10 @@ function onShareableVercel(): boolean {
 /** Drop a live JuicyChat session that leaked onto the public shareable isolate. */
 export async function purgeShareableLiveIfStale(userId: string): Promise<void> {
   if (!onShareableVercel() || !userId) return;
+  // Per-browser IndexedDB restores are private to that visitor. Wiping them on
+  // every cold start (the purge mark lives on ephemeral /tmp) is what made
+  // login + pinned creators vanish after closing the tab.
+  if (userId.startsWith("browser-")) return;
   const markPath = userDataPath(userId, PURGE_MARK);
   try {
     const cur = JSON.parse(readFileSync(markPath, "utf8")) as { epoch?: number };
