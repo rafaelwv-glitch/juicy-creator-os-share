@@ -15,7 +15,14 @@ This branch is the hosted web app. Auth is **off**. There is no database require
 
    Do **not** set `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GROK_AUTH_*`, or any JuicyChat cookie.
 
-5. Deploy. Framework: Vite / TanStack Start (auto-detected).
+5. **Turn off Deployment Protection** (required). Vercel teams default this **on**. It 401/403s dashboard server functions, which the UI shows as **Unauthorized** when someone tries to connect JuicyChat.
+
+   Project → **Settings → Deployment Protection**:
+   - Vercel Authentication: **Disabled**
+   - Password protection: **Off**
+   - Standard Protection: **Off** for Production
+
+6. Deploy. Framework: Vite / TanStack Start (auto-detected).
 
 ## CLI
 
@@ -27,11 +34,16 @@ vercel env add VITE_AUTH_ENABLED
 vercel --prod
 ```
 
+Then disable Deployment Protection in the dashboard (CLI cannot flip that flag from this repo).
+
 ## After deploy
 
-- `/` — sample dashboard
+- `/` — sample dashboard (SampleCreator, 2 bots)
 - `/api/health` — `{ "ok": true, "grokAuth": false, ... }`
-- Connecting a real JuicyChat session: use **JuicyChat source** on the dashboard (magic link / password / cookie). Do **not** use `/login` — app OAuth is off. The session is stored in HttpOnly cookies plus `/tmp` (ephemeral across cold starts). For a durable lounge, use the **local** or **desktop** branch.
+- Connecting a real JuicyChat session: open **Config → JuicyChat source** (magic link / password / cookie). Do **not** use `/login` — app OAuth is off on this clone. A working connect returns JuicyChat’s own message (`Magic link sent`, `user not exist`, …), never a bare `Unauthorized`.
+- The session is stored in HttpOnly cookies plus `/tmp` (ephemeral across cold starts). For a durable lounge, use the **local** or **desktop** branch.
+
+If connect still says **Unauthorized** / **Forbidden**: the deploy still has Vercel Authentication on, or you are on the `/login` page. Fix protection, then use Config.
 
 ## Cron (optional)
 

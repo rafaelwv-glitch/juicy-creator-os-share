@@ -68,3 +68,19 @@ export function formatAgo(iso: string | number | null | undefined) {
   if (sec < 86_400) return `${Math.round(sec / 3600)}h ago`;
   return formatWhen(iso);
 }
+
+/** Map Vercel / app-auth 401s so JuicyChat connect is not blamed. */
+export function humanizeConnectError(raw: unknown): string {
+  const m = raw instanceof Error ? raw.message : String(raw || "");
+  const t = m.trim();
+  if (
+    /^unauthorized$/i.test(t) ||
+    /^forbidden$/i.test(t) ||
+    /unauthorized — sign in/i.test(t) ||
+    /cross-site request blocked/i.test(t)
+  ) {
+    return "This Vercel deploy is blocking dashboard calls (Deployment Protection). Turn off Vercel Authentication in the project settings, then connect JuicyChat on Config with magic link / password / cookie — not the /login page.";
+  }
+  return t || "Request failed";
+}
+

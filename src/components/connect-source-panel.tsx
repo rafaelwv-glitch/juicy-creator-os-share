@@ -7,6 +7,7 @@ import {
   logoutJuicy,
   requestMagicLink,
 } from "@/lib/juicychat/actions";
+import { humanizeConnectError } from "@/lib/juicychat/format";
 
 type Auth = {
   authenticated?: boolean;
@@ -41,7 +42,7 @@ export function ConnectSourcePanel({
       setMsg(success);
       setOk(true);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
+      setMsg(humanizeConnectError(e));
       setOk(false);
     } finally {
       setBusy(false);

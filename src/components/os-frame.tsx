@@ -12,7 +12,7 @@ import { UserButton } from "@/lib/auth/gates";
 import { isCompanion } from "@/lib/auth/device-client";
 import { DbStatusIndicator, type PersistHealth } from "@/components/db-status";
 import type { CreatorDashboard } from "@/lib/juicychat/dashboard";
-import { formatWhen } from "@/lib/juicychat/format";
+import { formatWhen, humanizeConnectError } from "@/lib/juicychat/format";
 
 type ClockJob = {
   id: string;
@@ -62,7 +62,7 @@ export function useOsSession() {
           /* */
         }
       } catch (e) {
-        setMsg(e instanceof Error ? e.message : String(e));
+        setMsg(humanizeConnectError(e));
         setOk(false);
       }
     })();
@@ -97,7 +97,7 @@ export function useOsSession() {
       } catch {
         /* */
       }
-      setMsg(e instanceof Error ? e.message : String(e));
+      setMsg(humanizeConnectError(e));
       setOk(false);
     } finally {
       setBusy(false);
