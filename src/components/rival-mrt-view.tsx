@@ -50,12 +50,12 @@ function CadenceBars({ launch }: { launch: RivalMrt["launch"] }) {
 
 function TopicTable({
   mrt,
-  isYou,
+  versusName,
 }: {
   mrt: RivalMrt;
-  isYou?: boolean;
+  versusName?: string | null;
 }) {
-  if (isYou) {
+  if (!versusName) {
     const rows = mrt.topics.overlap.length
       ? mrt.topics.overlap
       : mrt.topics.rivalOnly.map((t) => ({
@@ -67,8 +67,8 @@ function TopicTable({
         }));
     return (
       <div className="rounded-xl border border-border/70 bg-bg/30 p-3">
-        <h3 className="mb-1 text-sm font-semibold">Your tags</h3>
-        <p className="mb-2 text-[12px] text-muted">Public tags on your lounge, ranked by chats.</p>
+        <h3 className="mb-1 text-sm font-semibold">Tags</h3>
+        <p className="mb-2 text-[12px] text-muted">Public tags on this lounge, ranked by chats.</p>
         {rows.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -112,7 +112,7 @@ function TopicTable({
 
   return (
     <div className="rounded-xl border border-border/70 bg-bg/30 p-3">
-      <h3 className="mb-1 text-sm font-semibold">Topics vs your portfolio</h3>
+      <h3 className="mb-1 text-sm font-semibold">Topics vs @{versusName}</h3>
       <p className="mb-2 text-[12px] text-muted">Shared tags they print on. Highest-value overlap first.</p>
       {mrt.topics.overlap.length ? (
         <div className="overflow-x-auto">
@@ -121,7 +121,7 @@ function TopicTable({
               <tr className="border-b border-border/60">
                 <th className="py-1 pr-2 font-medium">Tag</th>
                 <th className="py-1 pr-2 font-medium">Them</th>
-                <th className="py-1 font-medium">You</th>
+                <th className="py-1 font-medium">@{versusName}</th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +147,7 @@ function TopicTable({
           {mrt.topics.inferred.slice(0, 8).map((t) => (
             <span key={t.topic} className="rounded-full border border-border bg-bg px-2 py-0.5 text-[10px]">
               {t.topic}
-              {t.rivalBots && t.yourBots ? " · both" : t.rivalBots ? " · them" : " · you"}
+              {t.rivalBots && t.yourBots ? " · both" : t.rivalBots ? " · them" : ` · @${versusName}`}
             </span>
           ))}
         </div>
@@ -277,8 +277,17 @@ function DiscoveryCards({ mrt, isYou }: { mrt: RivalMrt; isYou?: boolean }) {
 }
 
 /** Same dossier body used for You and for a rival. */
-export function MrtPanels({ mrt, isYou }: { mrt: RivalMrt; isYou?: boolean }) {
-  const kpi = isYou
+export function MrtPanels({
+  mrt,
+  isYou,
+  versusName,
+}: {
+  mrt: RivalMrt;
+  isYou?: boolean;
+  versusName?: string | null;
+}) {
+  const vs = versusName ? `@${versusName}` : "you";
+  const kpi = isYou || !versusName
     ? [
         ["Chats", formatNum(mrt.profile.chats), cadenceLabel(mrt.launch.cadence)],
         [
@@ -303,22 +312,22 @@ export function MrtPanels({ mrt, isYou }: { mrt: RivalMrt; isYou?: boolean }) {
         [
           "Chats",
           formatNum(mrt.profile.chats),
-          mrt.vsYou.chatRatio != null ? `${mrt.vsYou.chatRatio.toFixed(2)}× you` : "",
+          mrt.vsYou.chatRatio != null ? `${mrt.vsYou.chatRatio.toFixed(2)}× ${vs}` : "",
         ],
         [
           "Likes",
           formatNum(mrt.profile.likes),
-          mrt.vsYou.likeRatio != null ? `${mrt.vsYou.likeRatio.toFixed(2)}× you` : "",
+          mrt.vsYou.likeRatio != null ? `${mrt.vsYou.likeRatio.toFixed(2)}× ${vs}` : "",
         ],
         [
           "Followers",
           formatNum(mrt.profile.followers),
-          mrt.vsYou.followerRatio != null ? `${mrt.vsYou.followerRatio.toFixed(2)}× you` : "",
+          mrt.vsYou.followerRatio != null ? `${mrt.vsYou.followerRatio.toFixed(2)}× ${vs}` : "",
         ],
         [
           "Public bots",
           formatNum(mrt.profile.publicBots),
-          mrt.vsYou.botRatio != null ? `${mrt.vsYou.botRatio.toFixed(2)}× you` : "",
+          mrt.vsYou.botRatio != null ? `${mrt.vsYou.botRatio.toFixed(2)}× ${vs}` : "",
         ],
         ["Δ day chats", formatDelta(mrt.vsYou.dodChats), "vs last scrape"],
         ["Δ 7d chats", formatDelta(mrt.vsYou.d7Chats), "week"],
@@ -360,7 +369,7 @@ export function MrtPanels({ mrt, isYou }: { mrt: RivalMrt; isYou?: boolean }) {
             </ul>
           ) : null}
         </div>
-        <TopicTable mrt={mrt} isYou={isYou} />
+        <TopicTable mrt={mrt} versusName={versusName} />
       </div>
 
       <TrafficTable mrt={mrt} />
@@ -635,9 +644,9 @@ export function MrtDuel({
           <thead className="text-muted">
             <tr className="border-b border-border/60">
               <th className="px-3 py-2 font-medium">KPI</th>
-              <th className="px-3 py-2 font-medium">You · @{yName}</th>
+              <th className="px-3 py-2 font-medium">@{yName}</th>
               <th className="px-3 py-2 font-medium">@{tName}</th>
-              <th className="px-3 py-2 font-medium">Δ / vs you</th>
+              <th className="px-3 py-2 font-medium">Δ / vs @{yName}</th>
             </tr>
           </thead>
           <tbody>
@@ -652,13 +661,13 @@ export function MrtDuel({
           </tbody>
         </table>
         <p className="px-3 py-2 text-[10px] text-faint">
-          Green = you lead. Rank / mean gap / top-3 share invert (lower is better). Ratios are them ÷ you.
+          Green = @{yName} leads. Rank / mean gap / top-3 share invert (lower is better). Ratios are @{tName} ÷ @{yName}.
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border/70 bg-bg/30 p-3">
-          <h3 className="mb-1 text-sm font-semibold">You · cadence</h3>
+          <h3 className="mb-1 text-sm font-semibold">@{yName} · cadence</h3>
           <p className="mb-2 text-[12px] text-muted">
             {cadenceLabel(you.launch.cadence)} · {you.launch.last30} in 30d
             {you.launch.bestSlot ? ` · ${you.launch.bestSlot}` : ""}
@@ -677,15 +686,15 @@ export function MrtDuel({
 
       <div className="rounded-xl border border-border/70 bg-bg/30 p-3">
         <h3 className="mb-1 text-sm font-semibold">Topic overlap</h3>
-        <p className="mb-2 text-[12px] text-muted">Tags you both print. Highest combined chats first.</p>
+        <p className="mb-2 text-[12px] text-muted">Tags both print. Highest combined chats first.</p>
         {overlap.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="text-muted">
                 <tr className="border-b border-border/60">
                   <th className="py-1 pr-2 font-medium">Tag</th>
-                  <th className="py-1 pr-2 font-medium">You</th>
-                  <th className="py-1 font-medium">Them</th>
+                  <th className="py-1 pr-2 font-medium">@{yName}</th>
+                  <th className="py-1 font-medium">@{tName}</th>
                 </tr>
               </thead>
               <tbody>
@@ -708,13 +717,13 @@ export function MrtDuel({
         )}
         <div className="mt-3 grid gap-2 sm:grid-cols-2 text-[11px] text-muted">
           <p>
-            You only:{" "}
+            @{yName} only:{" "}
             {them.topics.yourOnly.length
               ? them.topics.yourOnly.slice(0, 6).map((t) => t.tag).join(" · ")
               : "—"}
           </p>
           <p>
-            Them only:{" "}
+            @{tName} only:{" "}
             {them.topics.rivalOnly.length
               ? them.topics.rivalOnly.slice(0, 6).map((t) => t.tag).join(" · ")
               : "—"}
@@ -725,7 +734,7 @@ export function MrtDuel({
             {them.topics.inferred.slice(0, 8).map((t) => (
               <span key={t.topic} className="rounded-full border border-border bg-bg px-2 py-0.5 text-[10px]">
                 {t.topic}
-                {t.rivalBots && t.yourBots ? " · both" : t.rivalBots ? " · them" : " · you"}
+                {t.rivalBots && t.yourBots ? " · both" : t.rivalBots ? ` · @${tName}` : ` · @${yName}`}
               </span>
             ))}
           </div>
@@ -734,7 +743,7 @@ export function MrtDuel({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border/70 bg-bg/30 p-3">
-          <h3 className="mb-2 text-sm font-semibold">Your top bots</h3>
+          <h3 className="mb-2 text-sm font-semibold">@{yName} · top bots</h3>
           <MiniBots mrt={you} empty="No bots in the warehouse snapshot." />
         </div>
         <div className="rounded-xl border border-border/70 bg-bg/30 p-3">
@@ -768,8 +777,8 @@ export function DuelHeader({
         1v1
       </div>
       <h2 className="font-display text-2xl font-bold">
-        You · @{youName || "you"}
-        <span className="mx-2 text-muted">vs</span>@{themName || "rival"}
+        @{youName || "left"}
+        <span className="mx-2 text-muted">vs</span>@{themName || "right"}
       </h2>
       <p className="mt-1 text-sm text-muted">
         {youRank != null ? `#${youRank}` : "—"} {cadenceLabel(youCadence).toLowerCase()}

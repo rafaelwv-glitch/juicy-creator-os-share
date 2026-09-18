@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   Crosshair,
   Loader2,
   Pin,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   addRivalCreator,
+  compareTrackedCreators,
   listRivals,
   loadCachedSnapshot,
   pinRivalCreator,
@@ -28,16 +30,57 @@ import {
   cadenceLabel,
 } from "@/components/rival-mrt-view";
 import { formatDelta, formatNum, formatWhen } from "@/lib/juicychat/format";
-import type { RivalCompareResult, RivalEntry, RivalMrt, RivalsFile } from "@/lib/juicychat/rivals";
+import type {
+  PairCompareResult,
+  RivalCompareResult,
+  RivalEntry,
+  RivalMrt,
+  RivalsFile,
+  TrackedCreatorRef,
+} from "@/lib/juicychat/rivals";
 import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
 export const Route = createFileRoute("/stalker")({ component: StalkerPage });
 
+const PAIR_LS = "juicy-mrt-pair";
+
 type RivalFn = {
   file: RivalsFile;
   compare: RivalCompareResult;
+  tracked?: TrackedCreatorRef[];
   entry?: RivalEntry;
 };
+
+function readSavedPair(): { leftId: string | null; rightId: string | null } {
+  try {
+    const raw = sessionStorage.getItem(PAIR_LS);
+    if (!raw) return { leftId: null, rightId: null };
+    const p = JSON.parse(raw) as { leftId?: string; rightId?: string };
+    return { leftId: p.leftId || null, rightId: p.rightId || null };
+  } catch {
+    return { leftId: null, rightId: null };
+  }
+}
+
+function writeSavedPair(leftId: string | null, rightId: string | null) {
+  try {
+    sessionStorage.setItem(PAIR_LS, JSON.stringify({ leftId, rightId }));
+  } catch {
+    /* */
+  }
+}
+
+function defaultPair(tracked: TrackedCreatorRef[], saved?: { leftId: string | null; rightId: string | null }) {
+  const ids = tracked.map((t) => t.userId);
+  const savedLeft = saved?.leftId && ids.includes(saved.leftId) ? saved.leftId : null;
+  const savedRight = saved?.rightId && ids.includes(saved.rightId) ? saved.rightId : null;
+  const leftId = savedLeft || ids[0] || null;
+  const rightId =
+    savedRight && savedRight !== leftId
+      ? savedRight
+      : ids.find((id) => id !== leftId) || leftId;
+  return { leftId, rightId };
+}
 
 function StalkerPage() {
   const [file, setFile] = useState<RivalsFile | null>(null);
@@ -48,15 +91,76 @@ function StalkerPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [ok, setOk] = useState<boolean | null>(null);
   const [youBots, setYouBots] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [leftId, setLeftId] = useState<string | null>(null);
+  const [rightId, setRightId] = useState<string | null>(null);
+  const [tracked, setTracked] = useState<TrackedCreatorRef[]>([]);
+  const [pair, setPair] = useState<PairCompareResult | null>(null);
+  const [pairBusy, setPairBusy] = useState(false);
   const [deepAll, setDeepAll] = useState(false);
+
+  const applyRoster = useCallback((res: RivalFn) => {
+    setFile(res.file);
+    setCompare(res.compare);
+    const list = res.tracked?.length
+      ? res.tracked
+      : res.compare.rows.map((r) => ({
+          userId: r.userId,
+          userName: r.userName,
+          isYou: r.isYou,
+          source: r.source,
+          rank30d: r.rank30d,
+          hasSnapshot: true,
+          hasMrt: Boolean(r.isYou ? res.compare.youMrt : res.file.rivals.find((x) => x.userId === r.userId)?.mrt),
+        }));
+    setTracked(list);
+    const next = defaultPair(list, { leftId, rightId: rightId ?? null });
+    if (!leftId && next.leftId) setLeftId(next.leftId);
+    if (!rightId && next.rightId) setRightId(next.rightId);
+  }, [leftId, rightId]);
+
+  const loadPair = useCallback(async (left: string | null, right: string | null) => {
+    if (!left || !right) {
+      setPair(null);
+      return;
+    }
+    setPairBusy(true);
+    try {
+      const res = (await compareTrackedCreators({ data: { leftId: left, rightId: right } })) as {
+        pair: PairCompareResult | null;
+        tracked?: TrackedCreatorRef[];
+      };
+      setPair(res.pair);
+      if (res.tracked?.length) setTracked(res.tracked);
+      writeSavedPair(left, right);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+      setOk(false);
+    } finally {
+      setPairBusy(false);
+    }
+  }, []);
 
   const reload = useCallback(async () => {
     await browserCacheReady();
     const res = (await listRivals()) as RivalFn;
+    const list = res.tracked?.length
+      ? res.tracked
+      : res.compare.rows.map((r) => ({
+          userId: r.userId,
+          userName: r.userName,
+          isYou: r.isYou,
+          source: r.source,
+          rank30d: r.rank30d,
+          hasSnapshot: true,
+          hasMrt: Boolean(r.isYou ? res.compare.youMrt : res.file.rivals.find((x) => x.userId === r.userId)?.mrt),
+        }));
     setFile(res.file);
     setCompare(res.compare);
-    setSelected((cur) => cur ?? res.compare.youUserId ?? cur);
+    setTracked(list);
+    const saved = readSavedPair();
+    const next = defaultPair(list, saved);
+    setLeftId(next.leftId);
+    setRightId(next.rightId);
     try {
       const cached = await loadCachedSnapshot();
       setYouBots(cached?.snapshot?.bots?.length ?? 0);
@@ -65,12 +169,38 @@ function StalkerPage() {
     }
   }, []);
 
+  const pickRight = (userId: string) => {
+    setRightId(userId);
+    if (!leftId) setLeftId(userId);
+  };
+
+  const pickLeft = (userId: string) => {
+    setLeftId(userId);
+    if (!rightId) {
+      const other = tracked.find((t) => t.userId !== userId)?.userId;
+      if (other) setRightId(other);
+    }
+  };
+
+  const swapPair = () => {
+    if (!leftId && !rightId) return;
+    const nextLeft = rightId;
+    const nextRight = leftId;
+    setLeftId(nextLeft);
+    setRightId(nextRight);
+  };
+
   useEffect(() => {
     void reload().catch((e) => {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);
     });
   }, [reload]);
+
+  useEffect(() => {
+    if (!leftId || !rightId) return;
+    void loadPair(leftId, rightId);
+  }, [leftId, rightId, loadPair]);
 
   const onAdd = async () => {
     if (!link.trim()) {
@@ -84,9 +214,8 @@ function StalkerPage() {
       const res = (await addRivalCreator({
         data: { linkOrId: link.trim(), label: label.trim() || undefined },
       })) as RivalFn & { entry: RivalEntry };
-      setFile(res.file);
-      setCompare(res.compare);
-      setSelected(res.entry.userId);
+      applyRoster(res);
+      setRightId(res.entry.userId);
       setLink("");
       setLabel("");
       setMsg(`Pinned @${res.entry.userName || res.entry.userId}`);
@@ -104,8 +233,7 @@ function StalkerPage() {
     setMsg(null);
     try {
       const res = (await refreshAllRivals({ data: { enrich: deepAll } })) as RivalFn;
-      setFile(res.file);
-      setCompare(res.compare);
+      applyRoster(res);
       const mrtDays = res.file.rivals.reduce((s, r) => s + (r.mrtLog?.length || 0), 0);
       setMsg(
         `Refreshed ${res.file.rivals.length} creators · ${mrtDays} MRT days kept` +
@@ -125,9 +253,8 @@ function StalkerPage() {
     setBusy(true);
     try {
       const res = (await refreshRivalCreator({ data: { userId } })) as RivalFn & { entry: RivalEntry };
-      setFile(res.file);
-      setCompare(res.compare);
-      setSelected(userId);
+      applyRoster(res);
+      setRightId(userId);
       setMsg(`MRT updated @${res.entry.userName || userId}`);
       setOk(true);
     } catch (e) {
@@ -142,8 +269,7 @@ function StalkerPage() {
     setBusy(true);
     try {
       const res = (await pinRivalCreator({ data: { userId } })) as RivalFn;
-      setFile(res.file);
-      setCompare(res.compare);
+      applyRoster(res);
       setMsg("Pinned — stays even if they leave the 30d window");
       setOk(true);
     } catch (e) {
@@ -159,9 +285,9 @@ function StalkerPage() {
     setBusy(true);
     try {
       const res = (await removeRivalCreator({ data: { userId } })) as RivalFn;
-      setFile(res.file);
-      setCompare(res.compare);
-      if (selected === userId) setSelected(res.compare.youUserId ?? null);
+      applyRoster(res);
+      if (rightId === userId) setRightId(res.compare.rows.find((r) => r.userId !== leftId)?.userId ?? leftId);
+      if (leftId === userId) setLeftId(res.compare.rows[0]?.userId ?? null);
       setMsg("Removed");
       setOk(true);
     } catch (e) {
@@ -175,10 +301,7 @@ function StalkerPage() {
   const rivals = file?.rivals ?? [];
   const manuals = rivals.filter((r) => r.source !== "neighbor").length;
   const neighbors = compare?.neighbors;
-  const youId = compare?.youUserId ?? null;
-  const youRow = compare?.rows.find((r) => r.isYou);
-  const selectedIsYou = !!youId && selected === youId;
-  const selectedEntry = rivals.find((r) => r.userId === selected) || null;
+  const rightEntry = rivals.find((r) => r.userId === rightId) || null;
   const strip = useMemo(() => {
     const above = neighbors?.above || [];
     const below = neighbors?.below || [];
@@ -217,11 +340,9 @@ function StalkerPage() {
             30-day neighbours & <span className="text-muted">MRT</span>
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            Auto-tracks 3 above and 3 below you on 30-day ALL. If they move, the roster moves.
-            Pinned creators stay. Click You for your MRT (warehouse). Click a rival for 1v1.
-            Dossier uses public profile, space bots, launch times, tags vs your portfolio — never
-            own-account stats.
-            {youBots ? ` Your lounge: ${youBots} bots cached.` : " Refresh your lounge first for the You row."}
+            Auto-tracks 3 above and 3 below you on 30-day ALL. Pinned creators stay. Compare any two
+            tracked creators — overlap and ratios use the left side as baseline, not only your lounge.
+            {youBots ? ` Your lounge: ${youBots} bots cached.` : " Refresh Lounge to include your row in the picker."}
           </p>
         </header>
 
@@ -239,15 +360,19 @@ function StalkerPage() {
                 <button
                   key={`${h.kind}-${h.userId}`}
                   type="button"
-                  onClick={() => setSelected(h.userId)}
+                  onClick={() => pickRight(h.userId)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    pickLeft(h.userId);
+                  }}
                   className={`min-w-[132px] rounded-xl border px-3 py-2 text-left ${
-                    selected === h.userId
-                      ? h.kind === "you"
-                        ? "border-primary bg-primary/20"
-                        : "border-primary bg-elevated"
-                      : h.kind === "you"
-                        ? "border-primary/40 bg-primary/10 hover:border-primary/60"
-                        : "border-border bg-bg/50 hover:border-border-strong"
+                    rightId === h.userId
+                      ? "border-primary bg-elevated"
+                      : leftId === h.userId
+                        ? "border-primary/50 bg-primary/10"
+                        : h.kind === "you"
+                          ? "border-primary/40 bg-primary/10 hover:border-primary/60"
+                          : "border-border bg-bg/50 hover:border-border-strong"
                   }`}
                 >
                   <div className="text-[10px] uppercase tracking-wide text-faint">
@@ -265,6 +390,63 @@ function StalkerPage() {
               30-day ALL ranklist is empty — run Refresh all on Lounge so neighbours can lock.
             </p>
           )}
+        </section>
+
+        <section className="mb-5 rounded-2xl border border-primary/30 bg-surface/90 p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Compare any two tracked</h2>
+            <span className="text-[11px] text-muted">
+              Left is the baseline. Click a chip or row to set the right side.
+              {pairBusy ? " · updating…" : ""}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="min-w-[180px] flex-1 text-[11px] text-muted">
+              Left
+              <select
+                value={leftId || ""}
+                onChange={(e) => pickLeft(e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm text-fg outline-none ring-primary/40 focus:ring-2"
+              >
+                <option value="">Select creator</option>
+                {tracked.map((t) => (
+                  <option key={`l-${t.userId}`} value={t.userId}>
+                    {t.isYou ? "You · " : t.source === "alumni" ? "Alumni · " : t.source === "neighbor" ? "~ " : ""}
+                    {t.userName}
+                    {t.rank30d != null ? ` · #${t.rank30d}` : ""}
+                    {t.hasSnapshot ? "" : " · no snapshot"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={swapPair}
+              disabled={!leftId || !rightId || leftId === rightId}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-bg text-primary disabled:opacity-40"
+              title="Swap sides"
+            >
+              <ArrowLeftRight className="size-4" />
+            </button>
+            <label className="min-w-[180px] flex-1 text-[11px] text-muted">
+              Right
+              <select
+                value={rightId || ""}
+                onChange={(e) => pickRight(e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm text-fg outline-none ring-primary/40 focus:ring-2"
+              >
+                <option value="">Select creator</option>
+                {tracked.map((t) => (
+                  <option key={`r-${t.userId}`} value={t.userId}>
+                    {t.isYou ? "You · " : t.source === "alumni" ? "Alumni · " : t.source === "neighbor" ? "~ " : ""}
+                    {t.userName}
+                    {t.rank30d != null ? ` · #${t.rank30d}` : ""}
+                    {t.hasSnapshot ? "" : " · no snapshot"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </section>
 
         <section className="mb-5 rounded-2xl border border-border bg-surface/90 p-4 sm:p-5">
@@ -337,7 +519,7 @@ function StalkerPage() {
             <Users className="size-4 text-primary" />
             <h2 className="text-sm font-semibold">Radar</h2>
             <span className="text-xs text-muted">
-              sorted by 30d rank · {compare?.timezone || "Europe/Madrid"} · click You or a rival
+              sorted by 30d rank · {compare?.timezone || "Europe/Madrid"} · click sets right · right-click sets left
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -360,10 +542,14 @@ function StalkerPage() {
                 {(compare?.rows || []).map((r) => (
                   <tr
                     key={r.userId}
-                    onClick={() => setSelected(r.userId)}
+                    onClick={() => pickRight(r.userId)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      pickLeft(r.userId);
+                    }}
                     className={`cursor-pointer border-b border-border/60 hover:bg-elevated/40 ${
                       r.isYou ? "bg-primary/10" : ""
-                    } ${selected === r.userId ? "bg-elevated/70" : ""}`}
+                    } ${rightId === r.userId ? "bg-elevated/70" : leftId === r.userId ? "bg-primary/5" : ""}`}
                   >
                     <td className="py-2 pr-2 font-semibold text-muted">
                       {r.rank30d != null ? `#${r.rank30d}` : "—"}
@@ -430,32 +616,86 @@ function StalkerPage() {
           </div>
         </section>
 
-        {selectedIsYou && compare?.youMrt ? (
-          <YouMrtCard mrt={compare.youMrt} userName={youRow?.userName} />
-        ) : selectedIsYou ? (
+        {leftId && rightId && leftId !== rightId && pair?.leftMrt && pair?.rightMrt ? (
           <section className="mb-5 rounded-2xl border border-primary/30 bg-surface/90 p-4 sm:p-5">
-            <div className="text-[11px] uppercase tracking-wide text-faint">Complete MRT · You</div>
-            <h2 className="font-display mt-1 text-2xl font-bold">You</h2>
-            <p className="mt-1 text-sm text-muted">
-              Refresh Lounge first — your MRT is built from the warehouse snapshot, not a rival scrape.
-            </p>
-            <Link
-              to="/lounge"
-              className="mt-3 inline-flex h-9 items-center rounded-lg border border-border px-3 text-xs font-medium"
-            >
-              Open Lounge
-            </Link>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <DuelHeader
+                youName={pair.leftName}
+                themName={pair.rightName}
+                youRank={pair.leftMrt.rank30d}
+                themRank={pair.rightMrt.rank30d}
+                youCadence={pair.leftMrt.launch.cadence}
+                themCadence={pair.rightMrt.launch.cadence}
+              />
+              <div className="flex flex-wrap gap-2">
+                {rightEntry ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void onRefreshOne(rightEntry.userId)}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-fg"
+                    >
+                      {busy ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                      Deep scrape right
+                    </button>
+                    {rightEntry.source === "neighbor" ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void onPin(rightEntry.userId)}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium"
+                      >
+                        <Pin className="size-3.5" /> Pin
+                      </button>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            </div>
+            {pairBusy ? (
+              <p className="text-sm text-muted">Recomputing overlap vs @{pair.leftName}…</p>
+            ) : (
+              <MrtDuel
+                you={pair.leftMrt}
+                them={pair.rightMrt}
+                youName={pair.leftName}
+                themName={pair.rightName}
+              />
+            )}
           </section>
-        ) : selectedEntry ? (
+        ) : pair?.same && pair.leftMrt ? (
+          pair.leftIsYou ? (
+            <YouMrtCard mrt={pair.leftMrt} userName={pair.leftName} />
+          ) : (
+            <section className="mb-5 rounded-2xl border border-primary/30 bg-surface/90 p-4 sm:p-5">
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-faint">Complete MRT</div>
+                  <h2 className="font-display text-2xl font-bold">@{pair.leftName}</h2>
+                  <p className="mt-1 max-w-xl text-sm text-muted">
+                    Solo dossier. Pick a different creator on the right for 1v1.
+                  </p>
+                </div>
+              </div>
+              <MrtPanels mrt={pair.leftMrt} />
+            </section>
+          )
+        ) : rightEntry ? (
           <RivalDossier
-            entry={selectedEntry}
-            youMrt={compare?.youMrt ?? null}
-            youName={youRow?.userName}
-            busy={busy}
-            onRefresh={() => void onRefreshOne(selectedEntry.userId)}
-            onPin={() => void onPin(selectedEntry.userId)}
-            onRemove={() => void onRemove(selectedEntry.userId)}
+            entry={rightEntry}
+            versusMrt={pair?.leftMrt ?? null}
+            versusName={pair?.leftName}
+            pairRight={pair?.rightMrt ?? null}
+            busy={busy || pairBusy}
+            onRefresh={() => void onRefreshOne(rightEntry.userId)}
+            onPin={() => void onPin(rightEntry.userId)}
+            onRemove={() => void onRemove(rightEntry.userId)}
           />
+        ) : leftId && !rightId ? (
+          <section className="mb-5 rounded-2xl border border-dashed border-border bg-surface/90 p-4 sm:p-5">
+            <p className="text-sm text-muted">Pick a second tracked creator to compare.</p>
+          </section>
         ) : null}
 
         <section className="mb-8 rounded-2xl border border-border bg-surface/90 p-4 sm:p-5">
@@ -469,7 +709,11 @@ function StalkerPage() {
                 <button
                   type="button"
                   className="min-w-0 text-left"
-                  onClick={() => setSelected(r.userId)}
+                  onClick={() => pickRight(r.userId)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    pickLeft(r.userId);
+                  }}
                 >
                   <div className="truncate text-sm font-semibold">
                     @{r.userName || r.userId}
@@ -536,22 +780,24 @@ function StalkerPage() {
 
 function RivalDossier({
   entry,
-  youMrt,
-  youName,
+  versusMrt,
+  versusName,
+  pairRight,
   busy,
   onRefresh,
   onPin,
   onRemove,
 }: {
   entry: RivalEntry;
-  youMrt: RivalMrt | null;
-  youName?: string | null;
+  versusMrt: RivalMrt | null;
+  versusName?: string | null;
+  pairRight: RivalMrt | null;
   busy: boolean;
   onRefresh: () => void;
   onPin: () => void;
   onRemove: () => void;
 }) {
-  const m = entry.mrt ?? null;
+  const m = pairRight ?? entry.mrt ?? null;
   const actions = (
     <div className="flex flex-wrap gap-2">
       <button
@@ -584,24 +830,24 @@ function RivalDossier({
     </div>
   );
 
-  if (youMrt && m) {
+  if (versusMrt && m) {
     return (
       <section className="mb-5 rounded-2xl border border-primary/30 bg-surface/90 p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <DuelHeader
-            youName={youName || youMrt.userName}
+            youName={versusName || versusMrt.userName}
             themName={entry.label || entry.userName}
-            youRank={youMrt.rank30d}
+            youRank={versusMrt.rank30d}
             themRank={m.rank30d}
-            youCadence={youMrt.launch.cadence}
+            youCadence={versusMrt.launch.cadence}
             themCadence={m.launch.cadence}
           />
           {actions}
         </div>
         <MrtDuel
-          you={youMrt}
+          you={versusMrt}
           them={m}
-          youName={youName || youMrt.userName}
+          youName={versusName || versusMrt.userName}
           themName={entry.label || entry.userName}
         />
       </section>
@@ -622,7 +868,7 @@ function RivalDossier({
           <p className="mt-1 max-w-xl text-sm text-muted">
             {m?.profile.bio || "Public lounge dossier — profile, traffic, launches, overlapping topics."}
             {entry.mrtLog?.length ? ` · ${entry.mrtLog.length} MRT days archived.` : ""}
-            {!youMrt ? " Refresh Lounge to unlock 1v1." : ""}
+            {!versusMrt ? " Pick a left-side creator to unlock 1v1." : ""}
           </p>
         </div>
         {actions}

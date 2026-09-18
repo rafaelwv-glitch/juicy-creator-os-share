@@ -381,7 +381,11 @@ type RankHit = {
   score?: number;
 };
 
-export function pickNeighbors(board: LeaderboardBoard | null | undefined, n = 3): NeighborPick {
+export function pickNeighbors(
+  board: LeaderboardBoard | null | undefined,
+  n = 3,
+  centerUserId?: string | null,
+): NeighborPick {
   const empty: NeighborPick = { you: null, above: [], below: [] };
   if (!board) return empty;
   const pool: RankHit[] = [];
@@ -395,14 +399,16 @@ export function pickNeighbors(board: LeaderboardBoard | null | undefined, n = 3)
   for (const h of pool) {
     if (!byId.has(h.userId)) byId.set(h.userId, h);
   }
+  const centerId = centerUserId ? String(centerUserId) : "";
   const youHit =
+    (centerId ? [...byId.values()].find((h) => h.userId === centerId) : undefined) ||
     [...byId.values()].find((h) => h.isYou) ||
     (board.yourRank != null
       ? [...byId.values()].find((h) => h.rank === board.yourRank)
       : undefined);
   if (!youHit) return empty;
   const youRank = youHit.rank;
-  const others = [...byId.values()].filter((h) => !h.isYou && h.userId !== youHit.userId);
+  const others = [...byId.values()].filter((h) => h.userId !== youHit.userId);
   const aboveHits = others
     .filter((h) => h.rank < youRank)
     .sort((a, b) => b.rank - a.rank)
@@ -729,4 +735,40 @@ export function analyzeRivalMrt(input: {
       hasSceneCard: e.hasSceneCard ?? null,
     })),
   };
+}
+
+/** 1v1 MRT: left is the baseline (was hardcoded to the lounge owner). */
+export function pairMrtFromSnapshots(
+  left: LoungeSnapshot,
+  right: LoungeSnapshot,
+  opts?: {
+    leftRank30d?: number | null;
+    rightRank30d?: number | null;
+    leftDodChats?: number | null;
+    leftD7Chats?: number | null;
+    rightDodChats?: number | null;
+    rightD7Chats?: number | null;
+    boards?: LeaderboardBoard[] | null;
+    discovery?: DiscoveryLite;
+  },
+): { leftMrt: RivalMrt; rightMrt: RivalMrt } {
+  const leftMrt = analyzeRivalMrt({
+    rival: left,
+    you: left,
+    rank30d: opts?.leftRank30d,
+    dodChats: opts?.leftDodChats,
+    d7Chats: opts?.leftD7Chats,
+    boards: opts?.boards,
+    discovery: opts?.discovery,
+  });
+  const rightMrt = analyzeRivalMrt({
+    rival: right,
+    you: left,
+    rank30d: opts?.rightRank30d,
+    dodChats: opts?.rightDodChats,
+    d7Chats: opts?.rightD7Chats,
+    boards: opts?.boards,
+    discovery: opts?.discovery,
+  });
+  return { leftMrt, rightMrt };
 }
