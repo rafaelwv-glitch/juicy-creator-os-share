@@ -24,8 +24,8 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
     "desktop": "electron desktop/main.mjs",
-    "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir",
-    "desktop:build:win": "electron-builder --win zip nsis portable --x64"
+    "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir --publish never",
+    "desktop:build:win": "electron-builder --win zip nsis portable --x64 --publish never"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
