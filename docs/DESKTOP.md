@@ -2,6 +2,8 @@
 
 Same web app, in a native window. No sign-in wall.
 
+Prebuilt installers: [GitHub Releases](https://github.com/rafaelwv-glitch/juicy-creator-os-share/releases).
+
 ## Run from source
 
 ```bash
@@ -22,8 +24,8 @@ npm run desktop:build
 
 Outputs under `release/`:
 
-- `Juicy Creator OS-<version>.AppImage`
-- `juicy-creator-os-share-<version>.tar.gz`
+- `Juicy-Creator-OS-<version>-linux-x64.AppImage`
+- `Juicy-Creator-OS-<version>-linux-x64.tar.gz`
 - `linux-unpacked/` (the raw executable)
 
 Needs Node 22+ and the usual Linux desktop libs (`libgtk-3`, `libnotify`, `libnss3`, `libxss1`, `libxtst6`, `xdg-utils`).
@@ -34,7 +36,7 @@ Needs Node 22+ and the usual Linux desktop libs (`libgtk-3`, `libnotify`, `libns
 npm run desktop:build:win
 ```
 
-From Linux this cross-compiles x64 Windows. Wine is required for the NSIS installer and portable `.exe`; the zip always builds.
+Native Windows CI builds the NSIS installer and portable `.exe`. From Linux, `zip` always builds; Wine is required for NSIS/portable.
 
 Outputs under `release/`:
 

@@ -7,8 +7,8 @@ The UI boots on anonymous **sample bots** (`fixtures/warehouse-sample.json`). Co
 | Branch | What it is |
 | --- | --- |
 | [`vercel`](./docs/VERCEL.md) | Hosted web app. One-click Vercel deploy. **Disable Vercel Authentication** or JuicyChat connect 401s. |
-| [`local`](./docs/LOCAL.md) | Laptop installer (`scripts/install-local.sh`). |
-| [`desktop`](./docs/DESKTOP.md) | Electron window + Linux AppImage / tarball + Windows exe. |
+| [`local`](./docs/LOCAL.md) | Laptop installer (`scripts/install-local.sh` / `scripts/install-local.cmd`). |
+| [`desktop`](./docs/DESKTOP.md) | Electron: Linux AppImage/tarball + Windows setup/portable/zip. See [Releases](https://github.com/rafaelwv-glitch/juicy-creator-os-share/releases). |
 
 You are on the **local installer** branch.
 

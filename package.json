@@ -165,10 +165,12 @@
         "dir"
       ],
       "category": "Utility",
-      "maintainer": "Juicy Creator OS contributors"
+      "maintainer": "Juicy Creator OS contributors",
+      "artifactName": "Juicy-Creator-OS-${version}-linux-${arch}.${ext}",
+      "executableName": "juicy-creator-os"
     },
     "asar": false
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "desktop/main.mjs"
 }
