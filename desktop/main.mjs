@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Electron shell around the TanStack Start app.
- * Spawns `vite preview` (or `vite dev` if no build) on 127.0.0.1:4310.
+ * Spawns vite (preview if built, else dev) on 127.0.0.1:4310.
+ * ELECTRON_RUN_AS_NODE lets the packaged Electron binary run vite as Node
+ * on both Linux and Windows.
  */
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -17,6 +19,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = Number(process.env.DESKTOP_PORT || 4310);
 const HOST = "127.0.0.1";
 const url = `http://${HOST}:${PORT}/`;
+const isWin = process.platform === "win32";
 
 function startServer() {
   const viteJs = path.join(root, "node_modules", "vite", "bin", "vite.js");
@@ -30,8 +33,10 @@ function startServer() {
       ...process.env,
       VITE_AUTH_ENABLED: "false",
       ELECTRON: "1",
+      ELECTRON_RUN_AS_NODE: "1",
     },
     stdio: "inherit",
+    windowsHide: true,
   });
   child.on("exit", (code) => {
     if (!app.isQuiting && code && code !== 0) {
@@ -42,7 +47,8 @@ function startServer() {
   app.on("before-quit", () => {
     app.isQuiting = true;
     try {
-      child.kill("SIGTERM");
+      if (isWin) child.kill();
+      else child.kill("SIGTERM");
     } catch {
       /* */
     }
