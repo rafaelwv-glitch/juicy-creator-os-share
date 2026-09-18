@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import sampleWarehouse from "./sample-warehouse.json";
 import { analyzeGrowth, recordAndAnalyze, seedHistoryFromSnapshot, dayKey } from "./history";
@@ -58,9 +58,61 @@ const DASH_FILE = "creator-dashboard.json";
 const RANK_FILE = "creator-ranklist.json";
 const TAG_FILE = "tag-competition.json";
 
+export const SAMPLE_LOUNGE_USER_ID = "sample-juicy-user";
+
+export function isSampleUserId(id: string | null | undefined): boolean {
+  const v = String(id || "").trim();
+  return v === SAMPLE_LOUNGE_USER_ID || v.toLowerCase().startsWith("sample-");
+}
+
+export function isSampleSnapshot(
+  snap: { userId?: string; profile?: { userId?: string; userName?: string } | null } | null | undefined,
+): boolean {
+  if (!snap) return false;
+  if (isSampleUserId(snap.userId) || isSampleUserId(snap.profile?.userId)) return true;
+  return String(snap.profile?.userName || "") === "SampleCreator";
+}
+
+function sampleFileNames(): string[] {
+  const raw = sampleWarehouse as { files?: Record<string, unknown> };
+  return Object.keys(raw.files || {}).filter(
+    (name) => name.endsWith(".json") && !name.includes("..") && !name.includes("/"),
+  );
+}
+
+/** Drop the anonymous demo warehouse once a real JuicyChat session exists. */
+export function discardSampleWarehouse(): void {
+  try {
+    const snap = existsSync(dataPath("last-snapshot.json"))
+      ? (JSON.parse(readFileSync(dataPath("last-snapshot.json"), "utf8")) as LoungeSnapshot)
+      : null;
+    let cachedSnap: LoungeSnapshot | null = null;
+    try {
+      if (existsSync(dataPath(DASH_FILE))) {
+        cachedSnap = (JSON.parse(readFileSync(dataPath(DASH_FILE), "utf8")) as CreatorDashboard).snapshot;
+      }
+    } catch {
+      /* */
+    }
+    if (!isSampleSnapshot(snap) && !isSampleSnapshot(cachedSnap) && (snap || cachedSnap)) return;
+    if (!isSampleSnapshot(snap) && !isSampleSnapshot(cachedSnap)) return;
+    for (const name of [...sampleFileNames(), DASH_FILE, RANK_FILE, TAG_FILE]) {
+      const p = dataPath(name);
+      if (existsSync(p)) unlinkSync(p);
+    }
+  } catch {
+    /* best-effort */
+  }
+}
+
 /** Load the anonymous sample warehouse when this install has no lounge data yet. */
 export function seedSampleWarehouseIfEmpty(): void {
   try {
+    const session = loadSession();
+    if (session?.cookie) {
+      discardSampleWarehouse();
+      return;
+    }
     if (existsSync(dataPath("last-snapshot.json"))) return;
     const raw = sampleWarehouse as { files?: Record<string, unknown> };
     const files = raw.files && typeof raw.files === "object" ? raw.files : null;
@@ -540,8 +592,14 @@ export async function buildCreatorDashboard(options?: {
   const session = loadSession();
   const cached = loadDashboardCache();
   let userId = options?.userId || session?.userId || "";
-  if (!userId) {
-    userId = loadSnapshotFile()?.userId || loadSnapshotFile()?.profile?.userId || "";
+  if (isSampleUserId(userId) && session?.userId && !isSampleUserId(session.userId)) {
+    userId = session.userId;
+  }
+  if (!userId || isSampleUserId(userId)) {
+    const snap = loadSnapshotFile();
+    if (!isSampleSnapshot(snap)) {
+      userId = snap?.userId || snap?.profile?.userId || userId;
+    }
   }
   const full = options?.full !== false;
 
@@ -574,8 +632,8 @@ export async function buildCreatorDashboard(options?: {
 
   const client = JuicyClient.fromSession(loadSession());
   const youUserId =
-    snapshot?.profile?.userId ||
-    snapshot?.userId ||
+    (session?.userId && !isSampleUserId(session.userId) ? session.userId : null) ||
+    (isSampleSnapshot(snapshot) ? null : snapshot?.profile?.userId || snapshot?.userId) ||
     session?.userId ||
     null;
 

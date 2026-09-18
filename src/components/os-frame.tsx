@@ -106,8 +106,10 @@ export function useOsSession() {
   };
 
   const profile = dash?.snapshot?.profile;
+  const sampleSnap =
+    dash?.snapshot?.userId === "sample-juicy-user" || profile?.userName === "SampleCreator";
   const displayName =
-    profile?.userName || auth?.user?.userName || auth?.email || "Creator";
+    (!sampleSnap && profile?.userName) || auth?.user?.userName || auth?.email || "Creator";
   const sourceOn = Boolean(auth?.authenticated);
 
   return {

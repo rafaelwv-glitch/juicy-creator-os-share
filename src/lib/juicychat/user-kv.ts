@@ -52,6 +52,18 @@ function botCount(v: unknown): number {
   return typeof n === "number" ? n : 0;
 }
 
+function sampleish(v: unknown): boolean {
+  if (!v || typeof v !== "object") return false;
+  const o = v as {
+    userId?: string;
+    profile?: { userId?: string; userName?: string };
+    snapshot?: { userId?: string; profile?: { userId?: string; userName?: string } };
+  };
+  const id = String(o.userId || o.profile?.userId || o.snapshot?.userId || o.snapshot?.profile?.userId || "");
+  const name = String(o.profile?.userName || o.snapshot?.profile?.userName || "");
+  return id === "sample-juicy-user" || id.toLowerCase().startsWith("sample-") || name === "SampleCreator";
+}
+
 /** True when `incoming` would destroy durable data already in Postgres. */
 function isPoorer(key: string, incoming: unknown, existing: unknown): boolean {
   if (key === SESSION_KEY) {
@@ -65,9 +77,10 @@ function isPoorer(key: string, incoming: unknown, existing: unknown): boolean {
     return !iu && Boolean(eu);
   }
   if (key === "creator-dashboard.json" || key === "last-snapshot.json") {
+    if (sampleish(existing) && !sampleish(incoming)) return false;
     const inBots = botCount(incoming);
     const exBots = botCount(existing);
-    if (inBots === 0 && exBots > 0) return true;
+    if (inBots === 0 && exBots > 0 && !sampleish(existing)) return true;
     const inAt = Date.parse(String((incoming as { scrapedAt?: string })?.scrapedAt || (incoming as { snapshot?: { scrapedAt?: string } })?.snapshot?.scrapedAt || ""));
     const exAt = Date.parse(String((existing as { scrapedAt?: string })?.scrapedAt || (existing as { snapshot?: { scrapedAt?: string } })?.snapshot?.scrapedAt || ""));
     if (Number.isFinite(inAt) && Number.isFinite(exAt) && inAt + 5000 < exAt && inBots <= exBots) {

@@ -19,9 +19,11 @@ type Auth = {
 export function ConnectSourcePanel({
   auth,
   onChange,
+  onConnected,
 }: {
   auth: Auth | null;
   onChange: () => Promise<unknown>;
+  onConnected?: () => Promise<unknown>;
 }) {
   const [open, setOpen] = useState(!auth?.authenticated);
   const [busy, setBusy] = useState(false);
@@ -33,12 +35,13 @@ export function ConnectSourcePanel({
   const [password, setPassword] = useState("");
   const [cookie, setCookie] = useState("");
 
-  const run = async (fn: () => Promise<void>, success: string) => {
+  const run = async (fn: () => Promise<void>, success: string, pull = false) => {
     setBusy(true);
     setMsg(null);
     try {
       await fn();
-      await onChange();
+      if (pull && onConnected) await onConnected();
+      else await onChange();
       setMsg(success);
       setOk(true);
     } catch (e) {
@@ -109,7 +112,7 @@ export function ConnectSourcePanel({
                 void run(async () => {
                   const r = await loginWithMagicLink({ data: { link: magic, email } });
                   if (!r.ok) throw new Error(r.message);
-                }, "JuicyChat connected")
+                }, "JuicyChat connected — pulling lounge", true)
               }
               className="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-fg"
             >
@@ -138,7 +141,7 @@ export function ConnectSourcePanel({
                 void run(async () => {
                   const r = await loginWithPassword({ data: { userNo, password, email } });
                   if (!r.ok) throw new Error(r.message);
-                }, "JuicyChat connected")
+                }, "JuicyChat connected — pulling lounge", true)
               }
               className="h-9 rounded-lg border border-border px-3 text-xs font-semibold"
             >
@@ -157,7 +160,7 @@ export function ConnectSourcePanel({
                 void run(async () => {
                   const r = await loginWithCookie({ data: { cookie, email } });
                   if (!r.ok) throw new Error(r.message);
-                }, "Cookie saved")
+                }, "Cookie saved — pulling lounge", true)
               }
               className="h-9 rounded-lg border border-border px-3 text-xs font-semibold"
             >
