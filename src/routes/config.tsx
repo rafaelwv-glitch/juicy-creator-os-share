@@ -12,7 +12,7 @@ export const Route = createFileRoute("/config")({ component: ConfigPage });
 
 function ConfigPage() {
   const session = useOsSession();
-  const { dash, persist, companion, auth, reloadAuth, reloadDash, displayName } = session;
+  const { dash, persist, companion, auth, reloadAuth, reloadDash, onCloudRefresh, displayName } = session;
 
   return (
     <OsFrame tab="config" session={session}>
@@ -36,7 +36,14 @@ function ConfigPage() {
       ) : null}
 
       <div className="mb-6">
-        <ConnectSourcePanel auth={auth} onChange={reloadAuth} />
+        <ConnectSourcePanel
+          auth={auth}
+          onChange={reloadAuth}
+          onConnected={async () => {
+            await reloadAuth();
+            await onCloudRefresh();
+          }}
+        />
       </div>
 
       <DataToolsPanel
