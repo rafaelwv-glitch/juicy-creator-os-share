@@ -7,9 +7,11 @@
     "nf3": "0.3.17"
   },
   "scripts": {
-    "dev": "vite dev --host 0.0.0.0 --port 8080",
+    "dev": "node scripts/dev-local.mjs",
     "dev:local": "node scripts/dev-local.mjs",
-    "build": "vite build && node scripts/bundle-pglite-assets.mjs && npm run db:migrate",
+    "dev:vite": "vite dev --host 0.0.0.0 --port 8080",
+    "build": "vite build && npm run db:migrate",
+    "start": "node scripts/start-local.mjs",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "node scripts/migrate.mjs",
@@ -22,6 +24,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:local": "node scripts/smoke-local-only.mjs",
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
     "desktop": "electron desktop/main.mjs",
     "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir --publish never",
@@ -111,7 +114,7 @@
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12"
   },
-  "description": "Shareable JuicyChat creator dashboard — no accounts, no keys",
+  "description": "Local JuicyChat creator dashboard — laptop + desktop, no Vercel, no keys",
   "license": "MIT",
   "author": "Juicy Creator OS contributors",
   "build": {
@@ -186,6 +189,6 @@
     },
     "asar": false
   },
-  "version": "1.1.1",
+  "version": "1.2.0",
   "main": "desktop/main.mjs"
 }

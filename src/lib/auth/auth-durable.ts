@@ -16,7 +16,8 @@ type AuthDump = {
 };
 
 function token(): string {
-  return process.env.LOUNGE_GITHUB_TOKEN?.trim() || process.env.GITHUB_TOKEN?.trim() || "";
+  // Shareable clone is local-only — never write Better Auth users to the private original.
+  return "";
 }
 
 async function gh(path: string, init?: RequestInit) {

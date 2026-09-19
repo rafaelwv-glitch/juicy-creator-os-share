@@ -8,7 +8,7 @@ export const TURNSTILE_SITE_KEY = "0x4AAAAAABlVjKJdtrV0Ppi0";
 export const GOOGLE_CLIENT_ID =
   "1050354327719-ugsprd667nr00io299kktkipa89ffi44.apps.googleusercontent.com";
 
-/** Production cloud lounge. Android posts schedules, session, and JSON restores here. */
-export const CLOUD_LOUNGE_URL = "https://juicy-creator-os.vercel.app";
+/** Optional private original. Empty on this local-only clone. */
+export const CLOUD_LOUNGE_URL = "";
 export const CLOUD_PULL_TIMEZONE = "Europe/Madrid";
 export const CLOUD_PULL_TIMES = ["05:00", "23:55"] as const;

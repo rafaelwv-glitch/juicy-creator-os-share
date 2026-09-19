@@ -18,8 +18,7 @@ const databaseUrl =
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
 
 /**
- * Directory for file-backed PGLite. Unset on Vercel / serverless (ephemeral
- * isolate → in-memory). Local / Electron: user-data home, or `PGLITE_DATA_DIR`.
+ * Directory for file-backed PGLite. Local / Electron: user-data home, or `PGLITE_DATA_DIR`.
  */
 export function resolvePgliteDataDir(): string | undefined {
   return resolvePgliteDir();

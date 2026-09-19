@@ -209,7 +209,7 @@ export async function runDailyPull(
   const session = loadSession();
   const started = Date.now();
   const complete = opts?.complete ?? kind === "manual";
-  const budgetMs = process.env.VERCEL ? (complete ? 285_000 : 240_000) : 10 * 60_000;
+  const budgetMs = 10 * 60_000;
   const timeLeft = () => budgetMs - (Date.now() - started);
   // Complete (Lounge Refresh all) only bails when almost out of time.
   const need = (ms: number) => (complete ? timeLeft() > 8_000 : timeLeft() > ms);

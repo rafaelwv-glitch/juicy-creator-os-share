@@ -1,6 +1,6 @@
 /**
- * Durable fallback when Vercel has no DATABASE_URL: JSON on the lounge-data branch.
- * Session cookies are sealed before write.
+ * Optional GitHub JSON backup. Disabled on this shareable clone so it never
+ * reads or writes the private original `lounge-data` branch.
  */
 import { existsSync, writeFileSync } from "node:fs";
 import { collectBackup } from "./backup";
@@ -13,18 +13,7 @@ const REPO = "juicy-creator-os";
 const BRANCH = "lounge-data";
 
 function token(): string {
-  // Shareable Vercel clone must not read/write the private lounge-data branch.
-  if (
-    (process.env.VERCEL === "1" || process.env.VERCEL === "true") &&
-    process.env.VITE_AUTH_ENABLED !== "true"
-  ) {
-    return "";
-  }
-  return (
-    process.env.LOUNGE_GITHUB_TOKEN?.trim() ||
-    process.env.GITHUB_TOKEN?.trim() ||
-    ""
-  );
+  return "";
 }
 
 async function gh(path: string, init?: RequestInit) {

@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 /**
- * Nitro's Vercel preset traces `electric-sql__pglite.mjs` into `_libs/` but not
- * the WASM/data files it opens at runtime (`pglite.data`, `pglite.wasm`,
- * `initdb.wasm`). Without those, every `/api/auth/*` call 500s:
- *   ENOENT open '/var/task/_libs/pglite.data'
- *
- * Walk the function output and copy the assets next to every traced pglite
- * module and into every `_libs` directory.
+ * Leftover helper from the deprecated Vercel Nitro preset.
+ * Local builds use `node-server` and load PGLite WASM from node_modules.
+ * This script is a no-op unless an old `.vercel/output/functions` tree exists.
  */
 import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";

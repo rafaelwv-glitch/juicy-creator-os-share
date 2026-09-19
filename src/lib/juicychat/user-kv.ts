@@ -11,10 +11,7 @@ const PURGE_EPOCH = 1;
 const PURGE_MARK = "lounge-purge-epoch.json";
 
 function onShareableVercel(): boolean {
-  return (
-    (process.env.VERCEL === "1" || process.env.VERCEL === "true") &&
-    process.env.VITE_AUTH_ENABLED !== "true"
-  );
+  return false;
 }
 
 /** Drop a live JuicyChat session that leaked onto the public shareable isolate. */

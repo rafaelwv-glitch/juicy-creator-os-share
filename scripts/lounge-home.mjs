@@ -1,19 +1,13 @@
 /**
  * CLI path helper — same layout as src/lib/lounge-home.ts
+ * Local-only: never treat the process as a Vercel isolate.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 export function isServerless() {
-  return (
-    process.env.VERCEL === "1" ||
-    process.env.VERCEL === "true" ||
-    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
-    process.env.NETLIFY === "true" ||
-    process.cwd() === "/var/task" ||
-    process.cwd().startsWith("/var/task/")
-  );
+  return false;
 }
 
 function electronRoot() {
@@ -53,7 +47,6 @@ function hasLegacy(dir) {
 export function resolveLoungeDataDir() {
   const forced = process.env.JUICY_DATA_DIR?.trim();
   if (forced) return forced;
-  if (isServerless()) return join(tmpdir(), "juicy-lounge-data");
   const legacy = legacyCwdData();
   if (hasLegacy(legacy)) return legacy;
   return join(defaultClientHome(), "lounge");
@@ -62,7 +55,6 @@ export function resolveLoungeDataDir() {
 export function resolvePgliteDir() {
   const forced = process.env.PGLITE_DATA_DIR?.trim();
   if (forced) return forced;
-  if (isServerless()) return null;
   const legacy = join(legacyCwdData(), "pglite");
   if (existsSync(legacy)) return legacy;
   return join(defaultClientHome(), "pglite");
@@ -75,13 +67,12 @@ export function loungeHomeInfo() {
     pglite: resolvePgliteDir(),
     legacyCwd: legacyCwdData(),
     electron: Boolean(electronRoot()),
-    serverless: isServerless(),
+    serverless: false,
   };
 }
 
 export function ensureLoungeHome() {
   const info = loungeHomeInfo();
-  if (info.serverless) return info;
   mkdirSync(info.lounge, { recursive: true });
   if (info.pglite) mkdirSync(info.pglite, { recursive: true });
   mkdirSync(info.home, { recursive: true });
@@ -95,4 +86,3 @@ export function ensureLoungeHome() {
   }
   return info;
 }
-

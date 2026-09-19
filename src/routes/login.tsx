@@ -199,7 +199,7 @@ function Login() {
               {ephemeral ? (
                 <p className="text-[12px] text-warning">
                   Preview database only — this host has no Neon URL. Accounts reset when the
-                  server restarts. Production on juicy-creator-os.vercel.app uses Neon.
+                  server restarts. Use file-backed PGLite (the default) on your laptop.
                 </p>
               ) : null}
               {oauthBusy ? (

@@ -1,4 +1,4 @@
-/** Shared JSON / CORS helpers for Android ↔ Vercel lounge APIs. */
+/** Shared JSON / CORS helpers for lounge APIs (local Node / Electron). */
 import { loungeVaultSetCookies } from "./lounge-vault";
 
 export const CORS_HEADERS: Record<string, string> = {
@@ -29,15 +29,9 @@ export function assertCronOrPreview(request: Request): void {
   const header = request.headers.get("x-cron-secret") || "";
   const ua = (request.headers.get("user-agent") || "").toLowerCase();
   if (secret && (auth === `Bearer ${secret}` || header === secret)) return;
-  if (ua.includes("vercel-cron")) return;
   if (ua.includes("juicylounge-cron")) return;
-  // Preview / local: allow so the dashboard can trigger a pull.
-  if (!process.env.VERCEL) return;
-  // Deployed without CRON_SECRET: accept so GitHub Actions + dashboard still work.
-  if (!secret) return;
-  const err = new Error("Unauthorized cron");
-  (err as Error & { status?: number }).status = 401;
-  throw err;
+  // Local Node / Electron: always allow so the dashboard can trigger a pull.
+  return;
 }
 
 export async function readJsonBody(request: Request): Promise<unknown> {

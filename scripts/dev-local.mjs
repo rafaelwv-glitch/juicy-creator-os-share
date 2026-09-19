@@ -55,7 +55,7 @@ function waitForPostgres(url, attempts = 24) {
 async function maybeStartPostgres() {
   const url = databaseUrl();
   if (!url) {
-    console.log("[dev:local] DATABASE_URL unset — using file-backed PGLite under ./data/pglite");
+    console.log("[dev:local] DATABASE_URL unset — using file-backed PGLite");
     return;
   }
   if (!hasDocker()) {
@@ -77,15 +77,19 @@ async function migrate() {
   const script = join(root, "scripts", "migrate.mjs");
   const r = run(process.execPath, [script]);
   if (r.status !== 0) {
-    throw new Error("db:migrate failed");
+    console.warn("[dev:local] db:migrate failed — Vite will bootstrap PGLite on start");
   }
 }
 
 await maybeStartPostgres();
-await migrate();
+if (databaseUrl()) {
+  await migrate();
+} else {
+  console.log("[dev:local] file-backed PGLite — Vite migrates on boot");
+}
 
-console.log("[dev:local] starting vite on http://localhost:8080");
-const child = spawn("npm", ["run", "dev"], { stdio: "inherit", cwd: root, shell: false });
+console.log("[dev:local] starting vite on http://0.0.0.0:8080");
+const child = spawn("npm", ["run", "dev:vite"], { stdio: "inherit", cwd: root, shell: false });
 child.on("exit", (code) => process.exit(code ?? 0));
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => child.kill(sig));

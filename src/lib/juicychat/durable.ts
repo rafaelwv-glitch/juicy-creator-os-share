@@ -5,7 +5,7 @@
  *
  * Shareable clone: app OAuth is off (`VITE_AUTH_ENABLED` ≠ true). Without a
  * session or device token, fall back to a per-browser store id so visitors do
- * not share `dev-user`. IndexedDB is the durable warehouse; this isolate is not.
+ * not share `dev-user`. File PGLite is the durable warehouse.
  */
 import { createMiddleware } from "@tanstack/react-start";
 
