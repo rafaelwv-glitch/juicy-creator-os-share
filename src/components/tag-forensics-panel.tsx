@@ -31,7 +31,7 @@ import {
   type TagGapRow,
   type TagSuggest,
   type TagTrafficRow,
-} from "@/lib/juicychat/tag-forensics";
+} from "@/lib/juicychat/tag-forensics-view";
 
 const tooltipStyle = {
   background: "var(--color-surface)",
