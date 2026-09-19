@@ -26,6 +26,7 @@ const loungeHomeCli = read("scripts/lounge-home.mjs");
 
 assert(pkg.scripts.dev === "node scripts/dev-local.mjs", "npm run dev must be the local installer path");
 assert(pkg.scripts.start === "node scripts/start-local.mjs", "npm start must run the local Node server");
+assert(String(pkg.scripts.build).includes("bundle-pglite-assets"), "build must copy PGLite WASM next to the node-server");
 assert(!String(pkg.scripts.build).includes("vercel"), "build script must not mention vercel");
 assert(/preset:\s*["']node-server["']/.test(vite), "vite nitro preset must be node-server");
 assert(!/preset:\s*["']vercel["']/.test(vite), "vite must not use the vercel nitro preset");
