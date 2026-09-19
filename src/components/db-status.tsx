@@ -292,7 +292,7 @@ export function DatabaseStatusPanel({ persist }: { persist?: PersistHealth | nul
       : h.pgliteDir || h.dataDir
         ? `Reads and writes ${h.clientHome || h.dataDir}. Copy that folder to back up.`
         : h.browserCache
-          ? "JuicyChat session and warehouse stay in this browser. They are not written to the shared Vercel isolate."
+          ? "JuicyChat session and warehouse stay in this browser as a cache. The file database on this machine is the source of truth."
           : h.db === "neon" || h.durable
             ? "Webhook, settings, history, and scheduled publishes are saved here."
             : "This preview resets on restart. Use Docker Postgres or file-backed PGLite to persist.";

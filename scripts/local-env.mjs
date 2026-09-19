@@ -42,12 +42,5 @@ export function pgliteDataDir(cwd = process.cwd()) {
 }
 
 export function isServerless() {
-  return (
-    process.env.VERCEL === "1" ||
-    process.env.VERCEL === "true" ||
-    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
-    process.env.NETLIFY === "true" ||
-    process.cwd() === "/var/task" ||
-    process.cwd().startsWith("/var/task/")
-  );
+  return false;
 }

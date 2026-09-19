@@ -15,10 +15,7 @@ function keyFor(email: string) {
 export function appResetUrl(token: string): string {
   const origin = (
     process.env.BETTER_AUTH_URL?.trim() ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/^https?:\/\//, "")}`
-      : "") ||
-    "https://juicy-creator-os.vercel.app"
+    "http://127.0.0.1:8080"
   ).replace(/\/+$/, "");
   return `${origin}/reset-password?token=${encodeURIComponent(token)}`;
 }

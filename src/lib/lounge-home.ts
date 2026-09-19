@@ -1,21 +1,15 @@
 /**
  * Writable home for local / Electron clients.
- * Vercel stays ephemeral (/tmp + IndexedDB). Do not import from client components.
+ * This clone is local-only — never treat the process as a Vercel isolate.
+ * Do not import from client components (uses node:os / node:fs).
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
+/** Always false. Hosted serverless was deprecated. */
 export function isServerlessRuntime(): boolean {
-  if (typeof process === "undefined") return false;
-  return (
-    process.env.VERCEL === "1" ||
-    process.env.VERCEL === "true" ||
-    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
-    process.env.NETLIFY === "true" ||
-    process.cwd() === "/var/task" ||
-    process.cwd().startsWith("/var/task/")
-  );
+  return false;
 }
 
 function electronRoot(): string | null {
@@ -61,18 +55,16 @@ function hasLegacyWarehouse(dir: string): boolean {
 export function resolveLoungeDataDir(): string {
   const forced = process.env.JUICY_DATA_DIR?.trim();
   if (forced) return forced;
-  if (isServerlessRuntime()) return join(tmpdir(), "juicy-lounge-data");
   const legacy = legacyCwdData();
   if (hasLegacyWarehouse(legacy)) return legacy;
   return join(defaultClientHome(), "lounge");
 }
 
-/** File-backed PGLite directory. Undefined on serverless (in-memory). */
+/** File-backed PGLite directory. Always set on this clone. */
 export function resolvePgliteDir(): string | undefined {
   if (typeof process === "undefined") return undefined;
   const forced = process.env.PGLITE_DATA_DIR?.trim();
   if (forced) return forced;
-  if (isServerlessRuntime()) return undefined;
   const legacy = join(legacyCwdData(), "pglite");
   if (existsSync(legacy)) return legacy;
   return join(defaultClientHome(), "pglite");
@@ -94,7 +86,7 @@ export function loungeHomeInfo(): LoungeHomeInfo {
     pglite: resolvePgliteDir() || null,
     legacyCwd: legacyCwdData(),
     electron: Boolean(electronRoot()),
-    serverless: isServerlessRuntime(),
+    serverless: false,
   };
 }
 
@@ -109,7 +101,6 @@ Copy the whole folder to back up. Do not commit it to git.
 
 export function ensureLoungeHome(): LoungeHomeInfo {
   const info = loungeHomeInfo();
-  if (info.serverless) return info;
   try {
     mkdirSync(info.lounge, { recursive: true });
     if (info.pglite) mkdirSync(info.pglite, { recursive: true });

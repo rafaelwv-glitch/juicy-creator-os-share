@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import {
-  CloudUpload,
   Database,
   Download,
   FileJson,
@@ -22,8 +21,6 @@ import {
   downloadJson,
   stampFilename,
 } from "@/lib/juicychat/pdf-report";
-import { CLOUD_LOUNGE_URL } from "@/lib/juicychat/constants";
-import { getJuicyNative } from "@/lib/juicychat/phone-native";
 import type { GrowthAnalysis, LoungeSnapshot } from "@/lib/juicychat/types";
 
 type Props = {
@@ -53,22 +50,6 @@ const WAREHOUSE_CHIPS = [
   "Cron schedule",
   "New feed",
 ];
-
-function cloudOrigin(): string {
-  try {
-    const n = getJuicyNative()?.getCloudUrl?.();
-    if (n) return String(n).replace(/\/$/, "");
-  } catch {
-    /* */
-  }
-  if (typeof window !== "undefined") {
-    const h = window.location.hostname;
-    if (h && h !== "localhost" && h !== "127.0.0.1" && !h.endsWith(".local")) {
-      return window.location.origin.replace(/\/$/, "");
-    }
-  }
-  return CLOUD_LOUNGE_URL;
-}
 
 function warehouseStatus(raw: unknown): string {
   if (!raw || typeof raw !== "object") return "Imported";
@@ -115,8 +96,7 @@ export function DataToolsPanel({
   className = "",
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const vercelFileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<null | "export" | "import" | "vercel" | "pdf" | "clear">(
+  const [busy, setBusy] = useState<null | "export" | "import" | "pdf" | "clear">(
     null,
   );
   const [msg, setMsg] = useState<string | null>(null);
@@ -185,69 +165,6 @@ export function DataToolsPanel({
     } finally {
       setBusy(null);
       if (fileRef.current) fileRef.current.value = "";
-    }
-  };
-
-  const uploadJsonToVercel = async (text: string) => {
-    const native = getJuicyNative()?.uploadBackupToCloud;
-    if (typeof native === "function" && text.length < 700_000) {
-      try {
-        const parsed = JSON.parse(native(text) || "{}") as {
-          ok?: boolean;
-          error?: string;
-          message?: string;
-        };
-        if (parsed?.ok === false) throw new Error(parsed.error || parsed.message || "Vercel restore failed");
-        return parsed;
-      } catch (e) {
-        if (e instanceof SyntaxError) {
-          /* fall through to fetch */
-        } else {
-          throw e;
-        }
-      }
-    }
-    const origin = cloudOrigin();
-    const res = await fetch(`${origin}/api/lounge/restore`, {
-      method: "POST",
-      headers: { "content-type": "application/json", Accept: "application/json" },
-      body: text,
-    });
-    const bodyText = await res.text();
-    let parsed: { ok?: boolean; error?: string; message?: string } = {};
-    try {
-      parsed = JSON.parse(bodyText) as typeof parsed;
-    } catch {
-      parsed = { ok: false, error: bodyText };
-    }
-    if (!res.ok || parsed.ok === false) {
-      throw new Error(parsed.error || parsed.message || `HTTP ${res.status}`);
-    }
-    return parsed;
-  };
-
-  const onVercelFile = async (file: File | null) => {
-    if (!file) return;
-    setBusy("vercel");
-    setMsg(null);
-    try {
-      const text = await file.text();
-      JSON.parse(text);
-      const parsed = await uploadJsonToVercel(text);
-      setStatus(
-        `Restored on Vercel · ${file.name}${parsed.message ? " — " + parsed.message : ""}`,
-        true,
-      );
-      try {
-        await restoreLocal(JSON.parse(text));
-      } catch {
-        /* cloud restore is the source of truth */
-      }
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : `Vercel upload failed: ${String(e)}`, false);
-    } finally {
-      setBusy(null);
-      if (vercelFileRef.current) vercelFileRef.current.value = "";
     }
   };
 
@@ -378,20 +295,6 @@ export function DataToolsPanel({
 
         <button
           type="button"
-          onClick={() => vercelFileRef.current?.click()}
-          disabled={disabled}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-fg transition hover:border-primary disabled:opacity-55"
-        >
-          {busy === "vercel" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <CloudUpload className="size-4 text-primary" />
-          )}
-          Restore on Vercel
-        </button>
-
-        <button
-          type="button"
           onClick={() => void onPdf()}
           disabled={disabled}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:border-border-strong disabled:opacity-55"
@@ -426,21 +329,14 @@ export function DataToolsPanel({
         className="hidden"
         onChange={(e) => void onImportFile(e.target.files?.[0] ?? null)}
       />
-      <input
-        ref={vercelFileRef}
-        type="file"
-        accept="application/json,.json"
-        className="hidden"
-        onChange={(e) => void onVercelFile(e.target.files?.[0] ?? null)}
-      />
 
       {msg ? (
         <p className={`mt-3 text-xs ${ok ? "text-success" : "text-danger"}`}>{msg}</p>
       ) : (
         <p className="mt-3 text-[11px] text-muted">
           <Download className="mr-1 inline size-3" />
-          Warehouse files restore analytics onto{" "}
-          {CLOUD_LOUNGE_URL.replace("https://", "")} without moving your login cookie.
+          Warehouse files restore analytics onto this local database. Session
+          cookies stay on this machine.
         </p>
       )}
     </section>

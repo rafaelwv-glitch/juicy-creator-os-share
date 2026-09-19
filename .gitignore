@@ -2,6 +2,7 @@ node_modules/
 .android-sdk/
 .jdk-21/
 .vercel/
+.output/
 .tanstack/
 .grok/
 release/

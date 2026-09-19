@@ -1,12 +1,9 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/pull",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/pull",
-      "schedule": "55 21 * * *"
-    }
-  ]
+  "github": {
+    "enabled": false
+  },
+  "git": {
+    "deploymentEnabled": false
+  },
+  "ignoreCommand": "echo 'Juicy Creator OS is local-only; Vercel deploys are deprecated.' && exit 1"
 }

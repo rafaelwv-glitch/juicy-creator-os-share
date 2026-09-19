@@ -1,6 +1,6 @@
 # Desktop (Electron)
 
-Same web app, in a native window. No sign-in wall.
+Same web app, in a native window. No sign-in wall. No Vercel.
 
 Prebuilt installers: [GitHub Releases](https://github.com/rafaelwv-glitch/juicy-creator-os-share/releases).
 
@@ -9,12 +9,11 @@ Prebuilt installers: [GitHub Releases](https://github.com/rafaelwv-glitch/juicy-
 ```bash
 git clone https://github.com/rafaelwv-glitch/juicy-creator-os-share.git
 cd juicy-creator-os-share
-git checkout desktop
 npm install
 npm run desktop
 ```
 
-This starts the Vite preview server on `127.0.0.1:4310` and opens an Electron window.
+This starts the local Vite (or the built Node server) on `127.0.0.1:4310` and opens an Electron window.
 
 ## Build Linux packages
 
@@ -24,11 +23,13 @@ npm run desktop:build
 
 Outputs under `release/`:
 
-- `Juicy-Creator-OS-<version>-linux-x64.AppImage`
+- `Juicy-Creator-OS-<version>-linux-x64.AppImage` (electron-builder may name the AppImage `linux-x86_64`)
 - `Juicy-Creator-OS-<version>-linux-x64.tar.gz`
 - `linux-unpacked/` (the raw executable)
 
 Needs Node 22+ and the usual Linux desktop libs (`libgtk-3`, `libnotify`, `libnss3`, `libxss1`, `libxtst6`, `xdg-utils`).
+
+A packaged build runs the Nitro **node-server** from `.output/server/index.mjs`.
 
 ## Build Windows packages
 
