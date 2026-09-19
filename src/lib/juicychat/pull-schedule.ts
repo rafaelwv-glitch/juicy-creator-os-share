@@ -213,7 +213,9 @@ function migrateV1(o: Record<string, unknown>): PullJob[] {
 }
 
 function normalizeJobs(raw: unknown, fallbackLast?: string | null): PullJob[] {
-  if (!Array.isArray(raw) || !raw.length) return defaultJobs();
+  // Missing / non-array (first run, corrupt file) → factory defaults.
+  // An explicit [] is a saved empty list — the user deleted every job.
+  if (!Array.isArray(raw)) return defaultJobs();
   const out: PullJob[] = [];
   const ids = new Set<string>();
   for (const item of raw) {
@@ -225,7 +227,7 @@ function normalizeJobs(raw: unknown, fallbackLast?: string | null): PullJob[] {
     out.push(j);
     if (out.length >= MAX_JOBS) break;
   }
-  return out.length ? out : defaultJobs();
+  return out;
 }
 
 export function normalizePullSchedule(raw: unknown): PullSchedule {

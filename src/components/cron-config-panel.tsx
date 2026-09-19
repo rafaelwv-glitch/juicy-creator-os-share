@@ -187,20 +187,24 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
     setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...next } : j)));
   };
 
-  const onSave = async () => {
+  const persist = async (nextJobs: Job[], nextEnabled = enabled) => {
     setBusy(true);
     setMsg(null);
     try {
-      const cleaned = jobs.map((j) => {
+      const cleaned = nextJobs.map((j) => {
         const sources = { ...j.sources };
         if (meta.length && !meta.some((m) => sources[m.key])) sources.lounge = true;
         return { ...j, name: (j.name || "Unnamed scrape").slice(0, 40), sources };
       });
       const v = (await savePullSchedule({
-        data: { enabled, jobs: cleaned },
+        data: { enabled: nextEnabled, jobs: cleaned },
       })) as View;
       apply(v);
-      setMsg("Jobs saved. The next cloud check will honor them.");
+      setMsg(
+        cleaned.length
+          ? "Jobs saved. The next cloud check will honor them."
+          : "All scrape jobs removed. Scrapes stay off until you add one.",
+      );
       setOk(true);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
@@ -208,6 +212,50 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const onSave = async () => {
+    await persist(jobs, enabled);
+  };
+
+  const onRemove = (id: string) => {
+    const next = jobs.filter((j) => j.id !== id);
+    setJobs(next);
+    if (openId === id) setOpenId(next[0]?.id || null);
+    void persist(next, enabled);
+  };
+
+  const onRestoreDefaults = () => {
+    const sources = allOn(meta);
+    const next: Job[] = [
+      {
+        id: "morning",
+        name: "Morning scrape",
+        enabled: true,
+        when: "time",
+        hour: 5,
+        minute: 0,
+        intervalHours: 12,
+        complete: false,
+        sources,
+        lastFiredAt: null,
+      },
+      {
+        id: "night",
+        name: "Night scrape",
+        enabled: true,
+        when: "time",
+        hour: 23,
+        minute: 55,
+        intervalHours: 12,
+        complete: false,
+        sources,
+        lastFiredAt: null,
+      },
+    ];
+    setJobs(next);
+    setOpenId("morning");
+    void persist(next, enabled);
   };
 
   const upcoming = useMemo(() => {
@@ -316,6 +364,11 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
       </div>
 
       <div className="space-y-3">
+        {!jobs.length ? (
+          <p className="rounded-xl border border-dashed border-border bg-bg/40 px-3 py-6 text-center text-sm text-muted">
+            No scrape jobs. Scheduled scrapes stay off until you add one. Releases still fire.
+          </p>
+        ) : null}
         {jobs.map((job) => {
           const open = openId === job.id;
           const chips = onSources(job, meta);
@@ -484,19 +537,15 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
                     </div>
                   </div>
 
-                  {jobs.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setJobs((prev) => prev.filter((j) => j.id !== job.id));
-                        if (openId === job.id) setOpenId(null);
-                      }}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-danger/30 px-3 text-xs font-semibold text-danger"
-                    >
-                      <Trash2 className="size-3.5" />
-                      Remove job
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onRemove(job.id)}
+                    disabled={busy}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-danger/30 px-3 text-xs font-semibold text-danger disabled:opacity-50"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Remove job
+                  </button>
                 </div>
               ) : (
                 <button
@@ -529,12 +578,22 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
         <button
           type="button"
           onClick={() => void onSave()}
-          disabled={busy || !jobs.length}
+          disabled={busy}
           className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-fg disabled:opacity-60"
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : null}
           Save jobs
         </button>
+        {!jobs.length ? (
+          <button
+            type="button"
+            onClick={() => onRestoreDefaults()}
+            disabled={busy}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-bg px-3 text-sm font-semibold disabled:opacity-50"
+          >
+            Restore morning / night
+          </button>
+        ) : null}
       </div>
       {msg ? <p className={`mt-2 text-xs ${ok ? "text-success" : "text-danger"}`}>{msg}</p> : null}
     </section>
