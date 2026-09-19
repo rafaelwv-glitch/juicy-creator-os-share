@@ -1,15 +1,14 @@
 # Local installer
 
-Run the creator dashboard on a laptop. No cloud account. No Docker required (PGLite file DB is the default).
+Run the creator dashboard on a laptop. No cloud account. No Docker required (PGLite file DB is the default). Hosted Vercel is not used.
 
 ## Linux / macOS
 
 ```bash
 git clone https://github.com/rafaelwv-glitch/juicy-creator-os-share.git
 cd juicy-creator-os-share
-git checkout local
 bash scripts/install-local.sh
-npm run dev:local
+npm run dev
 ```
 
 Open http://127.0.0.1:8080 — you should see **SampleCreator**. Stop with Ctrl+C.
@@ -19,14 +18,24 @@ Open http://127.0.0.1:8080 — you should see **SampleCreator**. Stop with Ctrl+
 ```bat
 git clone https://github.com/rafaelwv-glitch/juicy-creator-os-share.git
 cd juicy-creator-os-share
-git checkout local
 scripts\install-local.cmd
-npm run dev:local
+npm run dev
 ```
 
 Then open http://127.0.0.1:8080. Prefer the Electron zip/installer from [Releases](https://github.com/rafaelwv-glitch/juicy-creator-os-share/releases) if you do not want Node on the PATH.
 
 The script checks Node 22+, installs deps, writes `.env.local` with auth off, seeds the sample warehouse, and prints the start command.
+
+`npm run dev` and `npm run dev:local` are the same: file-backed PGLite, then Vite on port 8080.
+
+## Production Node server
+
+```bash
+npm run build
+npm start
+```
+
+`vite build` uses Nitro **`node-server`** (a local process). It does **not** emit a Vercel function bundle.
 
 ## Optional Postgres
 
@@ -35,7 +44,7 @@ The script checks Node 22+, installs deps, writes `.env.local` with auth off, se
 # DATABASE_URL=postgres://juicy:juicy@localhost:5432/juicy
 npm run db:up
 npm run db:migrate
-npm run dev:local
+npm run dev
 ```
 
 Leave `DATABASE_URL` unset unless you also turn auth on. This clone keeps auth off, so the shared `dev-user` must not sit on a shared Postgres.
@@ -68,4 +77,5 @@ Never commit that file.
 
 ```bash
 npm run smoke
+npm run smoke:local
 ```

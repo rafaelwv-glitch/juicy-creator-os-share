@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /**
- * Fire the same daily-pull handler Vercel hits (`/api/cron/pull`) against a
- * running local server. Does not require Vercel or CRON_SECRET (the route
- * allows juicylounge-cron / non-VERCEL).
+ * Fire the same daily-pull handler (`/api/cron/pull`) against a
+ * running local server. Does not require a cloud host or CRON_SECRET.
  *
- *   npm run dev:local          # in one terminal
+ *   npm run dev                # in one terminal
  *   npm run cron:local         # in another
  */
 import { loadLocalEnv } from "./local-env.mjs";
@@ -27,7 +26,7 @@ try {
   res = await fetch(url, { method: "POST", headers });
 } catch (e) {
   console.error(
-    `[cron:local] cannot reach ${url} — start the app first (npm run dev:local).\n${e instanceof Error ? e.message : e}`,
+    `[cron:local] cannot reach ${url} — start the app first (npm run dev).\n${e instanceof Error ? e.message : e}`,
   );
   process.exit(1);
 }

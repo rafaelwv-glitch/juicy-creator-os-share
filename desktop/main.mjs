@@ -53,17 +53,28 @@ function applyLoungeEnv() {
 }
 
 function startServer() {
+  const nitroJs = path.join(root, ".output", "server", "index.mjs");
   const viteJs = path.join(root, "node_modules", "vite", "bin", "vite.js");
-  const built = existsSync(path.join(root, "dist")) || existsSync(path.join(root, ".output"));
-  const args = built
-    ? [viteJs, "preview", "--host", HOST, "--port", String(PORT)]
-    : [viteJs, "dev", "--host", HOST, "--port", String(PORT)];
+  let args;
+  const env = {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: "1",
+    PORT: String(PORT),
+    NITRO_PORT: String(PORT),
+    HOST,
+    NITRO_HOST: HOST,
+  };
+  if (existsSync(nitroJs)) {
+    args = [nitroJs];
+  } else {
+    const built = existsSync(path.join(root, "dist"));
+    args = built
+      ? [viteJs, "preview", "--host", HOST, "--port", String(PORT)]
+      : [viteJs, "dev", "--host", HOST, "--port", String(PORT)];
+  }
   const child = spawn(process.execPath, args, {
     cwd: root,
-    env: {
-      ...process.env,
-      ELECTRON_RUN_AS_NODE: "1",
-    },
+    env,
     stdio: "inherit",
     windowsHide: true,
   });

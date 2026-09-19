@@ -6,7 +6,7 @@ import { ensureLoungeHome, isServerlessRuntime, resolveLoungeDataDir } from "@/l
 
 /**
  * Per-request lounge account id. All JSON files under getDataDir() are scoped
- * to this user so concurrent Vercel invocations cannot mix accounts.
+ * to this user so concurrent requests cannot mix accounts.
  */
 export const loungeUserAls = new AsyncLocalStorage<string>();
 
@@ -43,7 +43,6 @@ export function userDataPath(userId: string, ...parts: string[]): string {
 /**
  * Writable data directory for JuicyChat session/snapshots.
  * Local / Electron: user-data home (`lounge/`)
- * Vercel: /tmp/juicy-lounge-data
  * When a lounge account is in ALS: .../users/<id>
  */
 export function getDataDir(): string {

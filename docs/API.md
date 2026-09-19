@@ -1,8 +1,7 @@
 # Juicy Creator OS — API documentation
 
 **Locked:** 2026-08-31  
-**Sources:** `src/lib/juicychat/*`, `src/routes/api/**`, `src/lib/auth/*`, Android companion.  
-**This is not a licence to scrape, publish, or impersonate other creators.**
+**This shareable clone is local-only.** Hosted URLs such as `https://juicy-creator-os.vercel.app` refer to the private original, not this repo. Run the lounge on `http://127.0.0.1:8080`.
 
 Do **not** commit `yume_voucher`, magic-link `param` tokens, Google `idToken`s, lounge device tokens, or `data/juicy-session.json`.
 

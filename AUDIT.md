@@ -13,6 +13,8 @@ Scanned source `rafaelwv-glitch/juicy-creator-os` before publishing this repo.
 ## Disabled
 - App-level auth (`VITE_AUTH_ENABLED` is not `"true"`)
 - Google / X / Grok identity providers (empty list)
+- Hosted Vercel (project paused; Nitro preset is `node-server`; `vercel.json` skips deploys)
+
 
 ## Kept (not user secrets)
 - JuicyChat AES envelope constants in `src/lib/juicychat/crypto.ts` (same as the public website JS)

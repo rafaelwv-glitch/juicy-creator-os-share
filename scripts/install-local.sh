@@ -36,5 +36,5 @@ node scripts/init-lounge-home.mjs
 
 echo
 echo "Install complete. Start the dashboard with:"
-echo "  npm run dev:local"
+echo "  npm run dev"
 echo "then open http://127.0.0.1:8080"

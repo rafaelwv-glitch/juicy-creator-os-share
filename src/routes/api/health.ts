@@ -23,9 +23,7 @@ export const Route = createFileRoute("/api/health")({
           grokAuth: authConfigured,
           grokClient: process.env.GROK_AUTH_CLIENT_ID?.trim()
             ? "app"
-            : process.env.VERCEL_ENV === "production"
-              ? "preview-blocked"
-              : "preview",
+            : "preview",
           authUsers: users,
           durable: (dbSource === "neon" && ping.ok) || (pglitePersistent && ping.ok),
           local: localPostgres || pglitePersistent,
