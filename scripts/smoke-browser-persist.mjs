@@ -292,6 +292,7 @@ async function playwrightPersist() {
   let executablePath;
   for (const candidate of [
     process.env.PLAYWRIGHT_CHROMIUM,
+    "/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell",
     "/root/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell",
     "/root/.cache/ms-playwright/chromium-1243/chrome-linux/chrome",
   ]) {

@@ -10,7 +10,7 @@
     "dev": "node scripts/dev-local.mjs",
     "dev:local": "node scripts/dev-local.mjs",
     "dev:vite": "vite dev --host 0.0.0.0 --port 8080",
-    "build": "vite build && npm run db:migrate",
+    "build": "vite build && node scripts/bundle-pglite-assets.mjs && npm run db:migrate",
     "start": "node scripts/start-local.mjs",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
@@ -26,6 +26,9 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:local": "node scripts/smoke-local-only.mjs",
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
+    "smoke:forensics": "node scripts/smoke-forensics-client.mjs",
+    "smoke:client": "node scripts/smoke-client-qa.mjs",
+    "smoke:qa": "node scripts/smoke-local-only.mjs && node scripts/smoke-forensics-client.mjs && node scripts/smoke-timing.mjs && node scripts/smoke-rivals-compare.mjs",
     "desktop": "electron desktop/main.mjs",
     "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir --publish never",
     "desktop:build:win": "electron-builder --win zip nsis portable --x64 --publish never"

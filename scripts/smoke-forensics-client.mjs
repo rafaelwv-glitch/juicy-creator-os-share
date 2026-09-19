@@ -44,6 +44,8 @@ const view = readFileSync(join(root, "src/lib/juicychat/tag-forensics-view.ts"),
 assert(!/\bnode:/.test(view), "tag-forensics-view must stay browser-safe (no node: imports)");
 assert(!/from\s+["']\.\/paths["']/.test(view), "tag-forensics-view must not import paths.ts");
 assert(!/lounge-home/.test(view), "tag-forensics-view must not import lounge-home");
+assert(view.includes("[×x,|/") || view.includes("[×x,"), "queryTokens must split on x / ×");
+assert(/export function comboMatchesQuery/.test(view), "comboMatchesQuery must live in the view module");
 
 const clientRoots = [join(root, "src/components"), join(root, "src/routes")];
 const forbidden = [
