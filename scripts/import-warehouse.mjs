@@ -39,7 +39,9 @@ const WAREHOUSE_FILES = [
   "audit15-queue.json",
   "tag-competition.json",
   "pull-schedule.json",
+  "timezone.json",
   "new-feed.json",
+  "followed-bots.json",
 ];
 
 const FILE_SET = new Set(WAREHOUSE_FILES);
@@ -103,7 +105,7 @@ function filesFromLegacy(data) {
     (Array.isArray(data.events)
       ? {
           version: 1,
-          timezone: "Europe/Madrid",
+          timezone: "UTC",
           events: data.events,
           lastScrapedAt: null,
           lastApiTotal: null,
@@ -114,7 +116,7 @@ function filesFromLegacy(data) {
   if (notifications && Array.isArray(notifications.events)) {
     files["notification-events.json"] = {
       version: 1,
-      timezone: notifications.timezone || "Europe/Madrid",
+      timezone: notifications.timezone || "UTC",
       events: notifications.events,
       lastScrapedAt: notifications.lastScrapedAt ?? null,
       lastApiTotal: notifications.lastApiTotal ?? null,
@@ -328,7 +330,7 @@ async function upsertKv(db, userId, key, value, force) {
 }
 
 async function projectRelational(db, userId, files) {
-  const tz = files["growth-history.json"]?.timezone || "Europe/Madrid";
+  const tz = files["timezone.json"]?.timezone || files["growth-history.json"]?.timezone || "UTC";
   const snap = files["last-snapshot.json"];
   const hist = files["growth-history.json"];
   const fol = files["followers-history.json"];

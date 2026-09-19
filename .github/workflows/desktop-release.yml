@@ -16,13 +16,23 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm run desktop:build
+      - name: Package Linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            npm run desktop:publish
+          else
+            npm run desktop:build
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: juicy-creator-os-linux
           path: |
             release/*.AppImage
             release/*.tar.gz
+            release/latest-linux.yml
+            release/latest-linux.yaml
           if-no-files-found: error
       - name: Attach Linux packages to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -31,7 +41,9 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
-          gh release upload "$GITHUB_REF_NAME" release/*.AppImage release/Juicy-Creator-OS-*.tar.gz --clobber
+          shopt -s nullglob
+          files=(release/*.AppImage release/Juicy-Creator-OS-*.tar.gz release/latest-linux.yml release/latest-linux.yaml)
+          gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
   windows:
     runs-on: windows-latest
     timeout-minutes: 40
@@ -42,15 +54,25 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm run desktop:build:win
+      - name: Package Windows
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            npm run desktop:publish:win
+          else
+            npm run desktop:build:win
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: juicy-creator-os-windows
           path: |
             release/*.exe
             release/*.zip
+            release/latest.yml
+            release/latest.yaml
           if-no-files-found: error
       - name: Attach Windows packages to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -62,6 +84,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             gh release create $env:GITHUB_REF_NAME --title $env:GITHUB_REF_NAME --generate-notes
           }
-          $files = @(Get-ChildItem -Path release -File | Where-Object { $_.Extension -in '.exe','.zip' } | ForEach-Object { $_.FullName })
+          $files = @(Get-ChildItem -Path release -File | Where-Object {
+            $_.Extension -in '.exe','.zip','.yml','.yaml' -and $_.Name -notmatch 'blockmap'
+          } | ForEach-Object { $_.FullName })
           if ($files.Count -eq 0) { throw "no windows packages in release/" }
           gh release upload $env:GITHUB_REF_NAME @files --clobber

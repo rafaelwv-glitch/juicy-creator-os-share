@@ -24,6 +24,8 @@ npm run dev
 
 Open http://127.0.0.1:8080 — you should see **SampleCreator** and two sample bots.
 
+**v1.3.0:** Config timezone + **Check for update**; Forensics → **Followed** pins a public `/chat/{id}` URL and charts chats / likes / favs over time. Desktop NSIS / AppImage can apply later GitHub releases.
+
 Linux/macOS installer: `bash scripts/install-local.sh`  
 Windows installer: `scripts\install-local.cmd`
 

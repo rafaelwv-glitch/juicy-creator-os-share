@@ -47,11 +47,37 @@ assert(!/lounge-home/.test(view), "tag-forensics-view must not import lounge-hom
 assert(view.includes("[×x,|/") || view.includes("[×x,"), "queryTokens must split on x / ×");
 assert(/export function comboMatchesQuery/.test(view), "comboMatchesQuery must live in the view module");
 
+const followPanel = readFileSync(join(root, "src/components/followed-bots-panel.tsx"), "utf8");
+assert(
+  followPanel.includes("@/lib/juicychat/followed-bots-view"),
+  "FollowedBotsPanel must import from followed-bots-view",
+);
+assert(
+  !/from\s+["']@\/lib\/juicychat\/followed-bots["']/.test(followPanel),
+  "FollowedBotsPanel must not import the Node followed-bots module",
+);
+const followView = readFileSync(join(root, "src/lib/juicychat/followed-bots-view.ts"), "utf8");
+assert(!/\bnode:/.test(followView), "followed-bots-view must stay browser-safe");
+assert(!/from\s+["']\.\/paths["']/.test(followView), "followed-bots-view must not import paths.ts");
+
+const updatePanel = readFileSync(join(root, "src/components/update-panel.tsx"), "utf8");
+assert(updatePanel.includes("Check for update"), "UpdatePanel must expose Check for update");
+assert(!/from\s+["']node:/.test(updatePanel) && !/import\s+["']node:/.test(updatePanel), "UpdatePanel must stay browser-safe");
+const appUpdate = readFileSync(join(root, "src/lib/juicychat/app-update.ts"), "utf8");
+assert(!/from\s+["']node:/.test(appUpdate) && !/import\s+["']node:/.test(appUpdate), "app-update.ts must stay browser-safe");
+assert(!/from\s+["']\.\/paths["']/.test(appUpdate), "app-update.ts must not import paths.ts");
+
+const pdf = readFileSync(join(root, "src/lib/juicychat/pdf-report.ts"), "utf8");
+assert(!/timezone-server/.test(pdf), "pdf-report must not import timezone-server");
+assert(!/\bnode:/.test(pdf), "pdf-report must stay browser-safe (no node: imports)");
+
 const clientRoots = [join(root, "src/components"), join(root, "src/routes")];
 const forbidden = [
   "@/lib/juicychat/tag-forensics",
+  "@/lib/juicychat/followed-bots",
   "@/lib/juicychat/paths",
   "@/lib/lounge-home",
+  "@/lib/juicychat/timezone-server",
   "node:os",
   "node:fs",
 ];

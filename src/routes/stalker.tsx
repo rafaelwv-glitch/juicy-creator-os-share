@@ -522,7 +522,7 @@ function StalkerPage() {
             <Users className="size-4 text-primary" />
             <h2 className="text-sm font-semibold">Radar</h2>
             <span className="text-xs text-muted">
-              sorted by 30d rank · {compare?.timezone || "Europe/Madrid"} · click sets right · right-click sets left
+              sorted by 30d rank · {compare?.timezone || "lounge zone"} · click sets right · right-click sets left
             </span>
           </div>
           <div className="overflow-x-auto">

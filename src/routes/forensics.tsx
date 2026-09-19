@@ -31,7 +31,9 @@ import {
 } from "@/lib/juicychat/actions";
 import { DesktopNavLinks, MobileNav } from "@/components/mobile-nav";
 import { TagForensicsPanel } from "@/components/tag-forensics-panel";
+import { FollowedBotsPanel } from "@/components/followed-bots-panel";
 import { formatDelta, formatNum, formatWhen } from "@/lib/juicychat/format";
+import { timezoneCity, getDisplayTimezone } from "@/lib/juicychat/timezone";
 import type {
   ForensicIndex,
   ForensicReport,
@@ -69,7 +71,7 @@ function ForensicsPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<"tags" | "topics" | "audience">("tags");
-  const [page, setPage] = useState<"tags" | "bots">("tags");
+  const [page, setPage] = useState<"tags" | "bots" | "follow">("tags");
 
   const load = async () => {
     setLoading(true);
@@ -156,8 +158,8 @@ function ForensicsPage() {
               Forensics
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
-              Tag popularity against warehouse creators, plus the bot archive: why a ship moved, who
-              keeps coming back, and tags that still have room.
+              Tag popularity against warehouse creators, a bot archive, and a follow list for any
+              public juicychat.ai/chat/… URL (chats, likes, favs over time).
             </p>
             {index ? (
               <p className="mt-1 text-[11px] text-faint">
@@ -188,6 +190,7 @@ function ForensicsPage() {
             [
               ["tags", "Tags"],
               ["bots", "Bots"],
+              ["follow", "Followed"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -203,11 +206,13 @@ function ForensicsPage() {
           ))}
         </div>
 
-        {loading ? (
+        {loading && page !== "follow" ? (
           <div className="flex items-center gap-2 py-16 text-sm text-muted">
             <Loader2 className="size-4 animate-spin text-primary" />
             Loading archive…
           </div>
+        ) : page === "follow" ? (
+          <FollowedBotsPanel />
         ) : page === "tags" ? (
           <TagForensicsPanel forensic={index?.warehouse} />
         ) : (
@@ -624,7 +629,9 @@ function ForensicsPage() {
                       ) : null}
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <div className="h-36">
-                          <div className="mb-1 text-[11px] uppercase tracking-wide text-faint">Hour heatmap (Madrid)</div>
+                          <div className="mb-1 text-[11px] uppercase tracking-wide text-faint">
+                            Hour heatmap ({timezoneCity(getDisplayTimezone())})
+                          </div>
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={hourData}>
                               <XAxis dataKey="h" tick={{ fill: "var(--color-faint)", fontSize: 9 }} interval={3} />

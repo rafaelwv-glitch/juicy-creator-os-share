@@ -9,6 +9,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { currentLoungeUserId, dataPath, ensureDataDir } from "./paths";
 import { buildLoungeReport } from "./github-report";
 import { getCachedOrEmptyDashboard } from "./dashboard";
+import { loungeTimezone } from "./timezone-server";
 
 const FILE = "grok-hook.json";
 
@@ -116,7 +117,7 @@ export function currentLoungeReport() {
     snapshot: dash.snapshot,
     growth: dash.growth,
     appVersion: "11.0.0",
-    timezone: "Europe/Madrid",
+    timezone: loungeTimezone(),
   });
 }
 
@@ -135,7 +136,7 @@ export function compactLoungeReport() {
   return {
     schema: full.schema || "juicy-lounge-report/v1",
     generatedAt: full.generatedAt,
-    timezone: full.timezone || "Europe/Madrid",
+    timezone: full.timezone || loungeTimezone(),
     appVersion: "11.0.0",
     creator: full.creator || null,
     kpis: full.kpis || null,

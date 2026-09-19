@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeftRight, LayoutDashboard } from "lucide-react";
 import { formatDelta, formatNum, formatPct } from "@/lib/juicychat/format";
+import { timezoneCity, getDisplayTimezone } from "@/lib/juicychat/timezone";
 import type { RivalMrt } from "@/lib/juicychat/rival-mrt";
 
 export function formatAge(days: number | null | undefined) {
@@ -352,7 +353,7 @@ export function MrtPanels({
             {cadenceLabel(mrt.launch.cadence)} · {mrt.launch.last7} in 7d · {mrt.launch.last30} in 30d ·{" "}
             {mrt.launch.last90} in 90d
             {mrt.launch.meanGapDays != null ? ` · mean gap ${mrt.launch.meanGapDays.toFixed(1)}d` : ""}
-            {mrt.launch.bestSlot ? ` · cluster ${mrt.launch.bestSlot} Madrid` : ""}
+            {mrt.launch.bestSlot ? ` · cluster ${mrt.launch.bestSlot} ${timezoneCity(getDisplayTimezone())}` : ""}
             {mrt.launch.newestAgeDays != null ? ` · newest ${formatAge(mrt.launch.newestAgeDays)}` : ""}
           </p>
           <CadenceBars launch={mrt.launch} />
@@ -578,7 +579,7 @@ export function MrtDuel({
       label: "Best slot",
       you: you.launch.bestSlot || "—",
       them: them.launch.bestSlot || "—",
-      delta: "Madrid",
+      delta: timezoneCity(getDisplayTimezone()),
       lead: null,
     },
     {

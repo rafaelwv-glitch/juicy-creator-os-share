@@ -10,5 +10,6 @@ export const GOOGLE_CLIENT_ID =
 
 /** Optional private original. Empty on this local-only clone. */
 export const CLOUD_LOUNGE_URL = "";
-export const CLOUD_PULL_TIMEZONE = "Europe/Madrid";
+/** Default scrape clock if no timezone.json exists yet (overridden by autodect). */
+export const CLOUD_PULL_TIMEZONE = "UTC";
 export const CLOUD_PULL_TIMES = ["05:00", "23:55"] as const;

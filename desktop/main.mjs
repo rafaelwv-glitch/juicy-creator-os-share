@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, ipcMain } = require("electron");
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = Number(process.env.DESKTOP_PORT || 4310);
@@ -120,6 +120,7 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: "#0a0b14",
     webPreferences: {
+      preload: path.join(root, "desktop", "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -137,9 +138,53 @@ function createWindow() {
   void win.loadURL(url);
 }
 
+function setupAutoUpdate() {
+  if (!app.isPackaged) return;
+  let autoUpdater;
+  try {
+    autoUpdater = require("electron-updater").autoUpdater;
+  } catch (e) {
+    console.warn("[desktop] electron-updater missing", e);
+    return;
+  }
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false;
+  const send = (payload) => {
+    for (const w of BrowserWindow.getAllWindows()) {
+      try {
+        w.webContents.send("desktop:update", payload);
+      } catch {
+        /* */
+      }
+    }
+  };
+  autoUpdater.on("checking-for-update", () => send({ state: "checking" }));
+  autoUpdater.on("update-available", (info) => send({ state: "available", version: info?.version }));
+  autoUpdater.on("update-not-available", () => send({ state: "none" }));
+  autoUpdater.on("error", (err) => send({ state: "error", message: String(err?.message || err) }));
+  autoUpdater.on("download-progress", (p) => send({ state: "downloading", percent: p?.percent || 0 }));
+  autoUpdater.on("update-downloaded", (info) => send({ state: "ready", version: info?.version }));
+  ipcMain.handle("desktop:check-update", async () => {
+    try {
+      return await autoUpdater.checkForUpdates();
+    } catch (e) {
+      send({ state: "error", message: String(e?.message || e) });
+      return null;
+    }
+  });
+  ipcMain.handle("desktop:install-update", () => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(() => undefined);
+  }, 12_000);
+}
+
 app.whenReady().then(async () => {
   const dirs = applyLoungeEnv();
   console.warn("[desktop] lounge DB", dirs.home);
+  setupAutoUpdate();
   startServer();
   await waitForServer();
   createWindow();

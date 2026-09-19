@@ -15,8 +15,9 @@ import type { DeepSignals } from "./deep-signals";
 import type { TimingAnalysis } from "./notifications";
 import type { PublishAnalysis } from "./publish-analysis";
 import type { TagForensics } from "./tag-forensics";
+import { loungeTimezone } from "./timezone-server";
+import { timezoneCity } from "./timezone";
 
-const TZ = "Europe/Madrid";
 const FILE = "bot-forensics.json";
 const MAX_IDENTITY_REVISIONS = 48;
 
@@ -406,7 +407,7 @@ export function inferTopics(name: string, intro: string, tags: string[]): string
 function emptyFile(): ForensicFile {
   return {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     lastIngestAt: null,
     sources: {},
     seenExtraKeys: [],
@@ -424,7 +425,7 @@ export function loadForensics(): ForensicFile {
     if (!raw || raw.version !== 1 || !raw.bots) return emptyFile();
     return {
       version: 1,
-      timezone: raw.timezone || TZ,
+      timezone: raw.timezone || loungeTimezone(),
       lastIngestAt: raw.lastIngestAt ?? null,
       sources: raw.sources || {},
       seenExtraKeys: Array.isArray(raw.seenExtraKeys) ? raw.seenExtraKeys : [],
@@ -456,7 +457,7 @@ function ageDays(ms: number | null): number | null {
 
 function madridHour(ts: number): { date: string; hour: number; day: number } {
   const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     weekday: "short",
     hour: "2-digit",
     hourCycle: "h23",
@@ -1386,7 +1387,7 @@ function publishLabel(bot: ForensicBot): { label: string; detail: string } | nul
   const ms = toMs(bot.identity.gmtFirstPublish ?? bot.identity.gmtCreate);
   if (!ms) return null;
   const fmt = new Intl.DateTimeFormat("en-GB", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     weekday: "short",
     year: "numeric",
     month: "short",
@@ -1396,7 +1397,7 @@ function publishLabel(bot: ForensicBot): { label: string; detail: string } | nul
     hourCycle: "h23",
   });
   const src = bot.identity.gmtFirstPublish ? "gmtFirstPublish" : "gmtCreate";
-  return { label: `Published ${fmt.format(new Date(ms))}`, detail: `${src} · Europe/Madrid` };
+  return { label: `Published ${fmt.format(new Date(ms))}`, detail: `${src} · lounge timezone` };
 }
 
 function whyFactors(bot: ForensicBot, tagBoard: TagBoardRow[], topicBoard: TopicBoardRow[], cpdMed: number): WhyFactor[] {
@@ -1543,7 +1544,7 @@ function whyFactors(bot: ForensicBot, tagBoard: TagBoardRow[], topicBoard: Topic
     out.push({
       kind: "timing",
       label: `Engagement peak ${String(peakH).padStart(2, "0")}:00`,
-      detail: `${peakV} like/fav/comment events in that hour (Madrid) across archived days.`,
+      detail: `${peakV} like/fav/comment events in that hour (${timezoneCity(loungeTimezone())}) across archived days.`,
       lift: null,
       weight: Math.min(0.5, peakV / 40),
     });
@@ -1610,7 +1611,7 @@ function whenSignals(bot: ForensicBot): WhenSignal[] {
     out.push({
       kind: "best-hour",
       at: `hour:${peakH}`,
-      label: `Best hour ${String(peakH).padStart(2, "0")}:00 Madrid`,
+      label: `Best hour ${String(peakH).padStart(2, "0")}:00 ${timezoneCity(loungeTimezone())}`,
       value: hours[peakH],
     });
   }

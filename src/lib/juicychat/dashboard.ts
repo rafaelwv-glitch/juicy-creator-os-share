@@ -36,6 +36,7 @@ import {
   type DashboardSignals,
 } from "./dashboard-signals";
 import { buildTagForensics, emptyTagForensics, type TagForensics } from "./tag-forensics";
+import { loungeTimezone } from "./timezone-server";
 
 export type CreatorDashboard = {
   scrapedAt: string;
@@ -511,7 +512,7 @@ function persistExposure(
   });
   if (!report.pool) return;
 
-  let file: ExposureFile = { version: 1, timezone: "Europe/Madrid", lastAt: null, latest: null, days: [] };
+  let file: ExposureFile = { version: 1, timezone: loungeTimezone(), lastAt: null, latest: null, days: [] };
   try {
     const p = dataPath(EXPOSURE_FILE);
     if (existsSync(p)) {
@@ -538,7 +539,7 @@ function persistExposure(
   days.sort((a, b) => a.date.localeCompare(b.date));
   file = {
     version: 1,
-    timezone: "Europe/Madrid",
+    timezone: loungeTimezone(),
     lastAt: report.analyzedAt,
     latest: report,
     days: days.slice(-EXPOSURE_MAX_DAYS),

@@ -5,6 +5,8 @@ import { authConfigured } from "@/lib/auth/server";
 import { countAuthUsers } from "@/lib/auth/auth-durable";
 import { jsonResponse } from "@/lib/juicychat/http";
 import { pingDb } from "@/lib/juicychat/relational";
+import { timezonePublicPayload } from "@/lib/juicychat/timezone-server";
+import { currentAppVersion } from "@/lib/juicychat/app-update-server";
 
 export const Route = createFileRoute("/api/health")({
   server: {
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/api/health")({
         const home = loungeHomeInfo();
         return jsonResponse({
           ok: ping.ok,
+          version: currentAppVersion(),
           db: dbSource,
           databaseUrl: Boolean(process.env.DATABASE_URL?.trim()),
           latencyMs: ping.latencyMs,
@@ -30,6 +33,7 @@ export const Route = createFileRoute("/api/health")({
           dataDir: home.serverless ? null : home.lounge,
           pgliteDir: home.pglite,
           clientHome: home.serverless ? null : home.home,
+          timezone: timezonePublicPayload(),
         });
       },
     },

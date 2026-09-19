@@ -9,6 +9,7 @@ import { scrapeLounge } from "./scrape";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { GrowthAnalysis, LoungeSnapshot } from "./types";
 import { dataPath, ensureDataDir } from "./paths";
+import { loungeTimezone } from "./timezone-server";
 
 function persistSnapshot(snapshot: LoungeSnapshot) {
   try {
@@ -123,7 +124,7 @@ export const getTimingAnalysis = createServerFn({ method: "GET" })
     console.warn("[timing] analyze failed", e);
     return analyzeTiming({
       version: 1,
-      timezone: "Europe/Madrid",
+      timezone: loungeTimezone(),
       events: [],
       lastScrapedAt: null,
       lastApiTotal: null,
@@ -800,6 +801,99 @@ export const savePullSchedule = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { savePullSchedule: write, packScheduleView } = await import("./pull-schedule");
     return packScheduleView(write(data));
+  });
+
+export const getTimezoneSettings = createServerFn({ method: "GET" })
+  .middleware([durableMiddleware])
+  .handler(async () => {
+    const { timezonePublicPayload } = await import("./timezone-server");
+    const { listTimeZones } = await import("./timezone");
+    return { ...timezonePublicPayload(), zones: listTimeZones() };
+  });
+
+export const saveTimezoneSettings = createServerFn({ method: "POST" })
+  .validator((input: { mode?: string; timezone?: string } | undefined) => input ?? {})
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { saveTimezoneSettings: write, timezonePublicPayload } = await import("./timezone-server");
+    const { listTimeZones } = await import("./timezone");
+    write({
+      mode: data.mode === "manual" ? "manual" : "auto",
+      timezone: typeof data.timezone === "string" ? data.timezone : null,
+    });
+    return { ...timezonePublicPayload(), zones: listTimeZones() };
+  });
+
+export const checkAppUpdate = createServerFn({ method: "POST" })
+  .validator(
+    (input: { platform?: string; portable?: boolean; channel?: string; force?: boolean } | undefined) =>
+      input ?? {},
+  )
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { checkAppUpdate: run } = await import("./app-update-server");
+    const ch = data.channel;
+    const channel =
+      ch === "nsis" ||
+      ch === "portable" ||
+      ch === "zip" ||
+      ch === "appimage" ||
+      ch === "targz" ||
+      ch === "src"
+        ? ch
+        : undefined;
+    return run({
+      platform: typeof data.platform === "string" ? data.platform : undefined,
+      portable: Boolean(data.portable),
+      channel,
+      force: Boolean(data.force),
+    });
+  });
+
+export const listFollowedBots = createServerFn({ method: "GET" })
+  .middleware([durableMiddleware])
+  .handler(async () => {
+    const { loadFollowedBots } = await import("./followed-bots");
+    return loadFollowedBots();
+  });
+
+export const followBotByUrl = createServerFn({ method: "POST" })
+  .validator((input: { url: string } | undefined) => input ?? { url: "" })
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { followBotByUrl: run } = await import("./followed-bots");
+    return run(String(data.url || ""));
+  });
+
+export const unfollowBot = createServerFn({ method: "POST" })
+  .validator((input: { characterId: string }) => input)
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { unfollowBot: run } = await import("./followed-bots");
+    return run(data.characterId);
+  });
+
+export const pinFollowedBot = createServerFn({ method: "POST" })
+  .validator((input: { characterId: string; pinned?: boolean }) => input)
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { pinFollowedBot: run } = await import("./followed-bots");
+    return run(data.characterId, data.pinned !== false);
+  });
+
+export const refreshFollowedBot = createServerFn({ method: "POST" })
+  .validator((input: { characterId: string }) => input)
+  .middleware([durableMiddleware])
+  .handler(async ({ data }) => {
+    const { refreshFollowedBot: run } = await import("./followed-bots");
+    return run(data.characterId);
+  });
+
+export const refreshAllFollowedBots = createServerFn({ method: "POST" })
+  .middleware([durableMiddleware])
+  .handler(async () => {
+    const { refreshAllFollowedBots: run } = await import("./followed-bots");
+    return run();
   });
 
 function decodeGzipJson<T>(data: unknown): T {

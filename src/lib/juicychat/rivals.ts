@@ -17,6 +17,7 @@ import {
   type RivalRankSeed,
   type RivalSource,
 } from "./rival-mrt";
+import { loungeTimezone } from "./timezone-server";
 
 export const RIVALS_FILE = "rivals-track.json";
 export const MAX_MANUAL = 12;
@@ -38,7 +39,7 @@ export type RivalTotals = {
 };
 
 export type RivalDay = {
-  date: string; // YYYY-MM-DD Europe/Madrid
+  date: string; // YYYY-MM-DD lounge timezone
   scrapedAt: string;
   totals: RivalTotals;
   rank30d?: number | null;
@@ -129,7 +130,6 @@ export type PairCompareResult = {
   same: boolean;
 };
 
-const TZ = "Europe/Madrid";
 
 function rivalsPath() {
   return dataPath(RIVALS_FILE);
@@ -138,7 +138,7 @@ function rivalsPath() {
 function dayKey(iso?: string) {
   const d = iso ? new Date(iso) : new Date();
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -259,7 +259,7 @@ function normalizeEntry(r: RivalEntry): RivalEntry {
 export function loadRivals(): RivalsFile {
   try {
     if (!existsSync(rivalsPath())) {
-      return { version: 2, timezone: TZ, rivals: [], alumni: [], skippedNeighborIds: [] };
+      return { version: 2, timezone: loungeTimezone(), rivals: [], alumni: [], skippedNeighborIds: [] };
     }
     const raw = JSON.parse(readFileSync(rivalsPath(), "utf8")) as RivalsFile;
     const rivals = (Array.isArray(raw.rivals) ? raw.rivals : []).map(normalizeEntry);
@@ -280,7 +280,7 @@ export function loadRivals(): RivalsFile {
     });
     const file: RivalsFile = {
       version: 2,
-      timezone: raw.timezone || TZ,
+      timezone: raw.timezone || loungeTimezone(),
       rivals: repaired,
       alumni: Array.isArray(raw.alumni) ? raw.alumni.map(normalizeEntry) : [],
       skippedNeighborIds: Array.isArray(raw.skippedNeighborIds) ? raw.skippedNeighborIds : [],
@@ -308,7 +308,7 @@ export function loadRivals(): RivalsFile {
     }
     return file;
   } catch {
-    return { version: 2, timezone: TZ, rivals: [], alumni: [], skippedNeighborIds: [] };
+    return { version: 2, timezone: loungeTimezone(), rivals: [], alumni: [], skippedNeighborIds: [] };
   }
 }
 
@@ -1024,7 +1024,7 @@ export function buildCompare(
   });
 
   return {
-    timezone: TZ,
+    timezone: loungeTimezone(),
     comparedAt: new Date().toISOString(),
     rows,
     youUserId: youId ? String(youId) : null,

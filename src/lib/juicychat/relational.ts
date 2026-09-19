@@ -11,6 +11,7 @@ import { currentLoungeUserId, dataPath, ensureDataDir, userDataPath } from "./pa
 import type { GrokHook } from "./grok-hook";
 import type { HistoryDay, HistoryFile, LoungeSnapshot } from "./types";
 import type { JuicySession } from "./session";
+import { loungeTimezone } from "./timezone-server";
 
 export type DbInventory = {
   source: "neon" | "pglite";
@@ -39,7 +40,6 @@ export type DbInventory = {
   lastOkPullMessage: string | null;
 };
 
-const TZ = "Europe/Madrid";
 
 function readJson(file: string): unknown | null {
   try {
@@ -126,7 +126,7 @@ function emptyInventory(ping: Awaited<ReturnType<typeof pingDb>>): DbInventory {
     notifications: 0,
     scheduledJobs: 0,
     kvKeys: 0,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     lastPullAt: null,
     lastPullOk: null,
     lastPullMessage: null,
@@ -237,7 +237,7 @@ export async function inventory(userId: string | null): Promise<DbInventory> {
 
     let growthDays = Number(hist[0]?.days || 0);
     let followerDays = Number(fol[0]?.points || 0);
-    let timezone = acct[0]?.timezone || TZ;
+    let timezone = acct[0]?.timezone || loungeTimezone();
     let webhookLastAt = acct[0]?.grok_last_at ? iso(acct[0].grok_last_at) : null;
 
     if (await tableName("lounge_history_day")) {
@@ -299,7 +299,7 @@ export async function upsertAccountFromFiles(userId: string): Promise<void> {
   const session = readJson("juicy-session.json") as JuicySession | null;
   const hook = readJson("grok-hook.json") as Partial<GrokHook> | null;
   const hist = readJson("growth-history.json") as HistoryFile | null;
-  const timezone = hist?.timezone || TZ;
+  const timezone = hist?.timezone || loungeTimezone();
   const sql = await getSql();
   await sql.query(
     `insert into lounge_account (
@@ -351,7 +351,7 @@ export async function upsertAccountFromFiles(userId: string): Promise<void> {
   await upsertSettings(userId, timezone);
 }
 
-export async function upsertSettings(userId: string, timezone = TZ, payload: Record<string, unknown> = {}): Promise<void> {
+export async function upsertSettings(userId: string, timezone = loungeTimezone(), payload: Record<string, unknown> = {}): Promise<void> {
   if (!userId) return;
   try {
     if (!(await tableName("lounge_settings"))) return;
@@ -363,7 +363,7 @@ export async function upsertSettings(userId: string, timezone = TZ, payload: Rec
          timezone = excluded.timezone,
          payload = excluded.payload,
          updated_at = now()`,
-      [userId, timezone || TZ, JSON.stringify(payload)],
+      [userId, timezone || loungeTimezone(), JSON.stringify(payload)],
     );
   } catch (e) {
     console.warn("[lounge] upsert settings failed", e);
@@ -435,7 +435,7 @@ export async function upsertHistoryDays(userId: string, hist: HistoryFile): Prom
   try {
     if (!(await tableName("lounge_history_day"))) return;
     const sql = await getSql();
-    await upsertSettings(userId, hist.timezone || TZ);
+    await upsertSettings(userId, hist.timezone || loungeTimezone());
     for (const d of hist.days) {
       const t = d.totals || { chats: 0, likes: 0, favorites: 0, followers: 0, interactions: 0, bots: 0 };
       await sql.query(
@@ -566,7 +566,7 @@ export async function projectFilesToTables(userId: string): Promise<void> {
            updated_at = now()`,
         [
           userId,
-          hist.timezone || TZ,
+          hist.timezone || loungeTimezone(),
           hist.days.length,
           last?.date || null,
           last?.totals?.chats ?? 0,
@@ -743,7 +743,7 @@ export async function hydrateFilesFromTables(userId: string): Promise<number> {
       if (dayRows.length > fileDays && dayRows.length >= Number(hist[0]?.days || 0)) {
         const rebuilt: HistoryFile = {
           version: 1,
-          timezone: existingHist?.timezone || TZ,
+          timezone: existingHist?.timezone || loungeTimezone(),
           days: dayRows.map(asHistoryDay),
         };
         writeJson("growth-history.json", rebuilt);
@@ -779,7 +779,7 @@ export async function hydrateFilesFromTables(userId: string): Promise<number> {
         }));
         writeJson("followers-history.json", {
           version: 1,
-          timezone: TZ,
+          timezone: loungeTimezone(),
           points,
           sample: [],
           last: points[points.length - 1] || null,

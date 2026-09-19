@@ -169,7 +169,7 @@ export function OsTabs({ current }: { current: OsTab }) {
     <div className="mb-6 grid grid-cols-3 gap-1 rounded-2xl border border-border bg-surface/80 p-1">
       {tab("/", "summary", "Quick summary", "Heat · clock · engine vs comedy")}
       {tab("/lounge", "lounge", "Lounge", "Full dashboard, ranks, yield")}
-      {tab("/config", "config", "Config", "Schedule, sources, accounts")}
+      {tab("/config", "config", "Config", "Timezone, schedule, sources")}
     </div>
   );
 }

@@ -28,10 +28,15 @@
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
     "smoke:forensics": "node scripts/smoke-forensics-client.mjs",
     "smoke:client": "node scripts/smoke-client-qa.mjs",
-    "smoke:qa": "node scripts/smoke-local-only.mjs && node scripts/smoke-forensics-client.mjs && node scripts/smoke-timing.mjs && node scripts/smoke-rivals-compare.mjs",
+    "smoke:qa": "node scripts/smoke-local-only.mjs && node scripts/smoke-forensics-client.mjs && node scripts/smoke-timing.mjs && node scripts/smoke-rivals-compare.mjs && node scripts/smoke-timezone.mjs && node scripts/smoke-app-update.mjs && node scripts/smoke-followed-bots.mjs",
+    "smoke:timezone": "node scripts/smoke-timezone.mjs",
+    "smoke:update": "node scripts/smoke-app-update.mjs",
+    "smoke:followed": "node scripts/smoke-followed-bots.mjs",
     "desktop": "electron desktop/main.mjs",
     "desktop:build": "npm run build && electron-builder --linux AppImage tar.gz dir --publish never",
-    "desktop:build:win": "electron-builder --win zip nsis portable --x64 --publish never"
+    "desktop:build:win": "npm run build && electron-builder --win zip nsis portable --x64 --publish never",
+    "desktop:publish": "npm run build && electron-builder --linux AppImage tar.gz dir --publish always",
+    "desktop:publish:win": "npm run build && electron-builder --win zip nsis portable --x64 --publish always"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -72,13 +77,17 @@
     "@tanstack/react-start": "^1.160.0",
     "@tanstack/react-table": "^8.21.0",
     "@tanstack/router-plugin": "^1.160.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "better-auth": "^1.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.0.0",
+    "electron-updater": "^6.8.9",
     "kysely": "^0.28.5",
+    "lightningcss": "^1.28.0",
     "lucide-react": "^0.510.0",
+    "nitro": "3.0.260603-beta",
     "pg": "^8.16.3",
     "react": "^19.1.0",
     "react-day-picker": "^9.14.0",
@@ -91,12 +100,9 @@
     "tailwindcss": "^4.1.0",
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
+    "vite": "^8.1.0",
     "zod": "^4.3.6",
-    "zustand": "^5.0.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "lightningcss": "^1.28.0",
-    "nitro": "3.0.260603-beta",
-    "vite": "^8.1.0"
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
@@ -104,6 +110,8 @@
     "@types/pg": "^8.11.10",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
@@ -113,9 +121,7 @@
     "playwright": "^1.52.0",
     "prettier": "^3.4.0",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.56.1",
-    "electron": "^37.2.0",
-    "electron-builder": "^26.0.12"
+    "typescript-eslint": "^8.56.1"
   },
   "description": "Local JuicyChat creator dashboard — laptop + desktop, no Vercel, no keys",
   "license": "MIT",
@@ -142,6 +148,13 @@
     ],
     "extraResources": [
       "fixtures"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "rafaelwv-glitch",
+        "repo": "juicy-creator-os-share"
+      }
     ],
     "win": {
       "target": [
@@ -187,11 +200,11 @@
       ],
       "category": "Utility",
       "maintainer": "Juicy Creator OS contributors",
-      "artifactName": "Juicy-Creator-OS-${version}-linux-${arch}.${ext}",
+      "artifactName": "Juicy-Creator-OS-${version}-linux-x64.${ext}",
       "executableName": "juicy-creator-os"
     },
     "asar": false
   },
-  "version": "1.2.0",
+  "version": "1.3.0",
   "main": "desktop/main.mjs"
 }

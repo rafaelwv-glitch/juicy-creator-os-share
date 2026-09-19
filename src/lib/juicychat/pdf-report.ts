@@ -18,6 +18,7 @@ import { analyzeExposure, EXPOSURE_LABEL, formatExposureRatio, formatLiftPts } f
 import type { NewFeedView } from "./new-feed";
 import type { DashboardSignals } from "./dashboard-signals";
 import type { TagForensics } from "./tag-forensics";
+import { getDisplayTimezone, timezoneCity } from "./timezone";
 
 export type PdfReportInput = {
   snapshot: LoungeSnapshot | null;
@@ -123,7 +124,7 @@ class PdfBuilder {
     const n = this.pages.length + 1;
     this.buf.push(`q ${rgb(LINE)} RG 0.4 w ${this.margin} 28 m ${this.pageW - this.margin} 28 l S Q`);
     this.buf.push(
-      `BT /F1 8 Tf ${rgb(FAINT)} rg ${this.margin} 16 Td (${esc("No credentials  ·  Europe/Madrid  ·  Juicy Lounge warehouse")}) Tj ET`,
+      `BT /F1 8 Tf ${rgb(FAINT)} rg ${this.margin} 16 Td (${esc(`No credentials  ·  ${getDisplayTimezone()}  ·  Juicy Lounge warehouse`)}) Tj ET`,
     );
     this.buf.push(
       `BT /F2 8 Tf ${rgb(MUTED)} rg ${this.pageW - this.margin - 50} 16 Td (${esc(`Page ${n}`)}) Tj ET`,
@@ -307,11 +308,11 @@ class PdfBuilder {
       color: WHITE,
     });
     const when = new Date().toLocaleString("en-GB", {
-      timeZone: "Europe/Madrid",
+      timeZone: getDisplayTimezone(),
       dateStyle: "full",
       timeStyle: "short",
     });
-    this.at(`Generated ${when}  ·  Europe/Madrid`, this.margin, this.pageH - 128, {
+    this.at(`Generated ${when}  ·  ${getDisplayTimezone()}`, this.margin, this.pageH - 128, {
       size: 9,
       color: [0.82, 0.8, 1],
     });
@@ -715,7 +716,7 @@ export function buildAnalyticsPdf(input: PdfReportInput): Uint8Array {
       (timing.byHour || []).map((h) => ({ label: String(h.hour).padStart(2, "0"), total: h.total })),
       "total",
       "label",
-      "Activity by hour (Madrid)",
+      `Activity by hour (${timezoneCity(getDisplayTimezone())})`,
     );
     if (timing.overallBestSlots?.length) {
       pdf.table(
@@ -1231,7 +1232,7 @@ export function buildAnalyticsPdf(input: PdfReportInput): Uint8Array {
       "No New-feed snapshot in this warehouse. Open the New tab and refresh there — it is never part of Lounge Refresh all or scheduled jobs.",
     );
   } else {
-    pdf.kv("Snapshot date (Madrid)", nf.lastDate || "—");
+    pdf.kv(`Snapshot date (${timezoneCity(getDisplayTimezone())})`, nf.lastDate || "—");
     pdf.kv("Scraped", nf.lastScrapedAt);
     pdf.kv(
       "Window",

@@ -2,7 +2,7 @@
 /**
  * Static guard: this clone is local-only. Vercel must not be the build target.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,6 +35,13 @@ assert(/ignoreCommand/.test(vercel), "vercel.json must skip any leftover Vercel 
 assert(!/Restore on Vercel/.test(tools), "UI must not offer Restore on Vercel");
 assert(!/Default branch is `vercel`/.test(readme), "README must not treat vercel as default");
 assert(/local-only|Local only|local \/ desktop/i.test(readme), "README must describe local-only");
+assert(pkg.version === "1.3.0", `package version must be 1.3.0, got ${pkg.version}`);
+assert(pkg.dependencies?.["electron-updater"], "electron-updater must be a production dependency");
+assert(Array.isArray(pkg.build?.publish) && pkg.build.publish[0]?.provider === "github", "electron-builder publish = github");
+assert(String(pkg.build?.linux?.artifactName || "").includes("linux-x64"), "Linux artifactName must stay linux-x64 (one AppImage)");
+assert(String(pkg.scripts["desktop:publish"] || "").includes("--publish always"), "desktop:publish must publish GitHub updater yml");
+assert(String(pkg.scripts["desktop:build:win"] || "").includes("npm run build"), "Windows pack must vite-build first");
+assert(existsSync(join(root, "desktop/preload.cjs")), "desktop preload must exist");
 assert(/return false/.test(home.split("export function isServerlessRuntime")[1]?.slice(0, 400) || ""), "isServerlessRuntime must be a no-op");
 assert(/return false/.test(loungeHomeCli.split("export function isServerless")[1]?.slice(0, 400) || ""), "CLI isServerless must be a no-op");
 

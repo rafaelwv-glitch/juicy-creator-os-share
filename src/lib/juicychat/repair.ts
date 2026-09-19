@@ -5,22 +5,22 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dataPath } from "./paths";
 import type { HistoryDay, HistoryFile, LoungeSnapshot } from "./types";
+import { loungeTimezone } from "./timezone-server";
 
-const TZ = "Europe/Madrid";
 
 export function calendarDay(raw: string | Date | null | undefined): string {
   if (!raw) return "";
-  if (raw instanceof Date) return madridDay(raw);
+  if (raw instanceof Date) return zonedDay(raw);
   const s = String(raw).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return s.slice(0, 10);
-  return madridDay(d);
+  return zonedDay(d);
 }
 
-function madridDay(d: Date): string {
+function zonedDay(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -125,7 +125,7 @@ function sanitizeSources(
   return next;
 }
 
-/** Keep one row per Madrid day. Last scrape wins. Never sum counts. */
+/** Keep one row per lounge-timezone day. Last scrape wins. Never sum counts. */
 export function repairFollowerFile(file: FollowerFile): FollowerFile {
   const byDate = new Map<string, FollowerPoint>();
   for (const p of file.points || []) {
@@ -174,7 +174,7 @@ export function repairFollowerFile(file: FollowerFile): FollowerFile {
 
   return {
     version: 1,
-    timezone: file.timezone || TZ,
+    timezone: file.timezone || loungeTimezone(),
     points: points.slice(-180),
     sample: Array.isArray(file.sample) ? file.sample : [],
     last,
@@ -242,7 +242,7 @@ export function repairHistory(file: HistoryFile, followerLevel?: number | null):
   return {
     ...file,
     version: 1,
-    timezone: file.timezone || TZ,
+    timezone: file.timezone || loungeTimezone(),
     days: days.slice(-400),
   };
 }

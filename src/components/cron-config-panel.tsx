@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, Loader2, Plus, Rocket, Trash2 } from "lucide-react";
 import { getPullSchedule, savePullSchedule, getCloudLoungeStatus } from "@/lib/juicychat/actions";
 import { formatAgo, formatWhen } from "@/lib/juicychat/format";
+import { timezoneCity } from "@/lib/juicychat/timezone";
 
 type Sources = Record<string, boolean>;
 
@@ -36,6 +37,7 @@ type View = {
   upcoming: Upcoming[];
   sourceMeta: SourceMeta[];
   intervalOptions: number[];
+  timezone?: string;
 };
 
 function hhmm(hour: number, minute: number) {
@@ -66,12 +68,12 @@ function onSources(job: Job, meta: SourceMeta[]): SourceMeta[] {
   return picked.length ? picked : meta.filter((m) => m.key === "lounge");
 }
 
-function whenLine(job: Job) {
+function whenLine(job: Job, tz?: string) {
   if (job.when === "interval") {
     const n = job.intervalHours || 12;
     return `Every ${n} hour${n === 1 ? "" : "s"}`;
   }
-  return `${hhmm(job.hour, job.minute)} Madrid`;
+  return `${hhmm(job.hour, job.minute)} ${timezoneCity(tz || "UTC")}`;
 }
 
 function blankJob(meta: SourceMeta[]): Job {
@@ -176,6 +178,9 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);
     });
+    const onTz = () => void reload().catch(() => undefined);
+    window.addEventListener("jl-timezone-changed", onTz);
+    return () => window.removeEventListener("jl-timezone-changed", onTz);
   }, [reload]);
 
   const patch = (id: string, next: Partial<Job>) => {
@@ -333,7 +338,9 @@ export function CronConfigPanel({ className = "" }: { className?: string }) {
                     <span className="text-sm font-semibold">{job.name || "Unnamed scrape"}</span>
                     <DepthBadge complete={job.complete} />
                   </div>
-                  <div className="mt-1 text-[12px] font-medium text-fg/80">{whenLine(job)}</div>
+                  <div className="mt-1 text-[12px] font-medium text-fg/80">
+                    {whenLine(job, view.timezone || view.schedule?.timezone)}
+                  </div>
                   <div className="mt-1.5">
                     <SourceChips keys={chips.map((c) => c.key)} meta={meta} />
                   </div>

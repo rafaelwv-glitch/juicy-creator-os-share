@@ -78,4 +78,18 @@ Never commit that file.
 ```bash
 npm run smoke
 npm run smoke:local
+npm run smoke:qa
 ```
+
+## Timezone
+
+Config → **Timezone**. Auto uses this computer’s zone (`Intl`). Switch to Manual to pin `Europe/Madrid` or any IANA name. Scrapes, heatmaps, and warehouse day keys follow that zone. Override for the process with `JUICY_TZ` only when no `timezone.json` exists yet.
+
+## App updates
+
+Config → **App updates** → **Check for update**. Desktop NSIS / AppImage can apply and restart; portable / zip / source download the matching GitHub asset. See [DESKTOP.md](./DESKTOP.md).
+
+## Follow a bot (Forensics)
+
+Forensics → **Followed**. Paste a public `https://www.juicychat.ai/chat/{id}` URL (or the numeric id). The lounge session pulls the public card and records chats / likes / favs once per lounge day so the line chart can move. Scheduled scrapes include a **Followed bots** source. Warehouse file: `followed-bots.json`.
+

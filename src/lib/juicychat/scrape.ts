@@ -96,7 +96,7 @@ const BOT_KNOWN = new Set([
   "textLength",
 ]);
 
-function pickBot(raw: Record<string, unknown>): JuicyBot | null {
+export function characterFromApi(raw: Record<string, unknown>): JuicyBot | null {
   if (!raw?.characterId) return null;
   const extras: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(raw)) {
@@ -195,7 +195,7 @@ async function paginateBots(
         break;
       }
       const batch = (Array.isArray(res.data) ? res.data : [])
-        .map((r) => pickBot(r))
+        .map((r) => characterFromApi(r))
         .filter(Boolean) as JuicyBot[];
       total = typeof res.total === "number" ? res.total : batch.length;
       bots.push(...batch);
@@ -220,7 +220,7 @@ async function paginateBots(
         break;
       }
       const batch = (Array.isArray(res.data) ? res.data : [])
-        .map((r) => pickBot(r))
+        .map((r) => characterFromApi(r))
         .filter(Boolean) as JuicyBot[];
       total = typeof res.total === "number" ? res.total : batch.length;
       bots.push(...batch);

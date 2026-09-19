@@ -34,6 +34,7 @@ import { MobileNav, DesktopNavLinks } from "@/components/mobile-nav";
 import { DataToolsPanel } from "@/components/data-tools-panel";
 import type { CreatorInsights, DiscoveryFeedId } from "@/lib/juicychat/insights";
 import { browserCacheReady } from "@/lib/juicychat/browser-sync";
+import { formatWhenInZone, getDisplayTimezone } from "@/lib/juicychat/timezone";
 
 export const Route = createFileRoute("/insights")({ component: InsightsPage });
 
@@ -56,15 +57,7 @@ function formatNum(n: number | null | undefined) {
 
 function formatWhen(iso: string | null | undefined) {
   if (!iso) return "never";
-  try {
-    return new Date(iso).toLocaleString("en-GB", {
-      timeZone: "Europe/Madrid",
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
+  return formatWhenInZone(iso, getDisplayTimezone());
 }
 
 function InsightsPage() {

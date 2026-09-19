@@ -4,8 +4,8 @@
  */
 import { liftBaseImmersive, type JuicyBot, type LoungeSnapshot } from "./types";
 import type { LeaderboardBoard } from "./deep-signals";
+import { loungeTimezone } from "./timezone-server";
 
-const TZ = "Europe/Madrid";
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export type RivalSource = "manual" | "neighbor";
@@ -283,7 +283,7 @@ export function ageDays(v: string | number | null | undefined, now = Date.now())
 
 function madridParts(ms: number) {
   const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     weekday: "short",
     hour: "2-digit",
     hourCycle: "h23",

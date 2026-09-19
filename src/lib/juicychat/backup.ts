@@ -10,13 +10,14 @@ import { loadRivals, type RivalsFile } from "./rivals";
 import type { CloudPublishJob } from "./cloud-publish";
 import type { ForensicFile } from "./forensics";
 import type { EconomyFile } from "./economy";
+import { loungeTimezone } from "./timezone-server";
 
 export const BACKUP_FORMAT = "juicy-lounge-backup" as const;
 export const BACKUP_VERSION = "9.9.0";
 
 /** Credentials-free dump of every analytics signal. Replaces the old Save JSON. */
 export const WAREHOUSE_FORMAT = "juicy-lounge-warehouse" as const;
-export const WAREHOUSE_VERSION = "1.6.0";
+export const WAREHOUSE_VERSION = "1.7.0";
 
 const CREDENTIAL_FILES = new Set(["juicy-session.json", "grok-hook.json"]);
 
@@ -36,7 +37,9 @@ export const WAREHOUSE_FILES = [
   "audit15-queue.json",
   "tag-competition.json",
   "pull-schedule.json",
+  "timezone.json",
   "new-feed.json",
+  "followed-bots.json",
 ] as const;
 
 /** Origin-private browser cache: warehouse + credentials. */
@@ -191,7 +194,7 @@ export function collectBackup(opts?: { includeSession?: boolean }): JuicyBackup 
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    timezone: "Europe/Madrid",
+    timezone: loungeTimezone(),
     session: includeSession ? loadSession() : null,
     snapshot: loadSnapshotFile(),
     history: loadHistory(),
@@ -268,7 +271,7 @@ export function collectWarehouse(): LoungeWarehouse {
     format: WAREHOUSE_FORMAT,
     version: WAREHOUSE_VERSION,
     exportedAt: new Date().toISOString(),
-    timezone: "Europe/Madrid",
+    timezone: loungeTimezone(),
     credentials: false,
     account,
     manifest: buildManifest(files),
@@ -312,7 +315,7 @@ export function collectBrowserWarehouse(): LoungeWarehouse {
     format: WAREHOUSE_FORMAT,
     version: WAREHOUSE_VERSION,
     exportedAt: new Date().toISOString(),
-    timezone: "Europe/Madrid",
+    timezone: loungeTimezone(),
     credentials: false,
     account,
     manifest: buildManifest(files),
@@ -329,7 +332,7 @@ function filesFromLegacy(data: Partial<JuicyBackup> & { events?: NotifStore["eve
     (Array.isArray(data.events)
       ? {
           version: 1,
-          timezone: "Europe/Madrid",
+          timezone: loungeTimezone(),
           events: data.events,
           lastScrapedAt: null,
           lastApiTotal: null,
@@ -340,7 +343,7 @@ function filesFromLegacy(data: Partial<JuicyBackup> & { events?: NotifStore["eve
   if (notifications && Array.isArray(notifications.events)) {
     files["notification-events.json"] = {
       version: 1,
-      timezone: notifications.timezone || "Europe/Madrid",
+      timezone: notifications.timezone || loungeTimezone(),
       events: notifications.events,
       lastScrapedAt: notifications.lastScrapedAt ?? null,
       lastApiTotal: notifications.lastApiTotal ?? null,

@@ -25,6 +25,7 @@ async function unitView() {
   const vite = await createServer({
     root,
     configFile: false,
+    cacheDir: join(root, "node_modules/.vite-smoke-client"),
     server: { middlewareMode: true },
     appType: "custom",
     logLevel: "error",
@@ -68,10 +69,10 @@ async function pages() {
     const routes = [
       { path: "/", expect: /SampleCreator|lounge|Creator/i, shot: "qa-home.png" },
       { path: "/lounge", expect: /SampleCreator|bots|warehouse|dashboard/i, shot: "qa-lounge.png" },
-      { path: "/forensics", expect: /Forensics|Tag|catalog|warehouse/i, shot: "qa-forensics.png", forbid: /node:os|Something went wrong/i },
-      { path: "/timing", expect: /Timing|heatmap|slot|Madrid/i, shot: "qa-timing.png", forbid: /Cannot read properties|Something went wrong/i },
+      { path: "/forensics", expect: /Forensics|Tag|Followed|catalog|warehouse/i, shot: "qa-forensics.png", forbid: /node:os|Something went wrong/i },
+      { path: "/timing", expect: /Timing|heatmap|slot|timezone|UTC|Europe|America|Asia/i, shot: "qa-timing.png", forbid: /Cannot read properties|Something went wrong/i },
       { path: "/stalker", expect: /rival|compare|pin|track/i, shot: "qa-stalker.png" },
-      { path: "/config", expect: /JuicyChat|source|database|PGLite|local/i, shot: "qa-config.png" },
+      { path: "/config", expect: /timezone|update|JuicyChat|source|database|PGLite|local/i, shot: "qa-config.png" },
     ];
     for (const r of routes) {
       const consoleErrors = [];
@@ -111,6 +112,26 @@ async function pages() {
       });
       console.log("QA PAGE OK", r.path, { status, bodyChars: body.length, shot });
     }
+
+    await page.goto(`${base}/forensics`, { waitUntil: "networkidle", timeout: 45000 });
+    await page.waitForTimeout(800);
+    const followTab = page.getByRole("button", { name: /^Followed$/ });
+    assert(await followTab.count(), "Forensics Followed tab missing");
+    await followTab.click();
+    await page.waitForTimeout(800);
+    const followBody = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+    assert(/Follow a public bot/i.test(followBody), `Followed panel missing: ${followBody.slice(0, 180)}`);
+    assert(/juicychat\.ai\/chat/i.test(followBody), "Followed panel needs chat URL field");
+    await page.screenshot({ path: join(shotDir, "qa-followed.png"), fullPage: false });
+    console.log("QA PAGE OK", "/forensics#follow");
+
+    await page.goto(`${base}/config`, { waitUntil: "networkidle", timeout: 45000 });
+    await page.waitForTimeout(800);
+    const cfg = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+    assert(/App updates/i.test(cfg), "Config missing App updates");
+    assert(/Check for update/i.test(cfg), "Config missing Check for update");
+    await page.screenshot({ path: join(shotDir, "qa-update.png"), fullPage: false });
+    console.log("QA PAGE OK", "/config#update");
   } finally {
     await browser.close();
   }

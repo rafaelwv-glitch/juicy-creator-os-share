@@ -6,8 +6,11 @@
  * Fallback: gmtCreate (draft created — slightly earlier).
  */
 import type { JuicyBot, LoungeSnapshot } from "./types";
+import { loungeTimezone } from "./timezone-server";
 
-export const PUBLISH_TZ = "Europe/Madrid";
+export function publishTz() {
+  return loungeTimezone();
+}
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export type PublishSource = "gmtFirstPublish" | "gmtCreate" | "none";
@@ -92,7 +95,7 @@ export function resolvePublishTs(bot: JuicyBot): {
   return null;
 }
 
-function localParts(ms: number, timeZone = PUBLISH_TZ) {
+function localParts(ms: number, timeZone = publishTz()) {
   const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone,
     weekday: "short",
@@ -172,7 +175,7 @@ function buildInsight(byDay: BucketStat[], byHour: BucketStat[], n: number): str
       ? bestDay.avgChatsPerDay / worstDay.avgChatsPerDay
       : 0;
   const parts = [
-    `Among ${n} bots with launch times (${PUBLISH_TZ}),`,
+    `Among ${n} bots with launch times (${publishTz()}),`,
     `${bestDay.label} publishes average ${Math.round(bestDay.avgChatsPerDay)} chats/day`,
     `(n=${bestDay.n}) vs ${worstDay.label} at ${Math.round(worstDay.avgChatsPerDay)}/day (n=${worstDay.n})`,
     lift >= 1.15 ? `— ~${lift.toFixed(1)}× stronger day effect.` : "— day effect is mild.",
@@ -187,7 +190,7 @@ export function analyzePublishTiming(
   opts?: { nowMs?: number; timezone?: string },
 ): PublishAnalysis | null {
   if (!snapshot?.bots?.length) return null;
-  const tz = opts?.timezone || PUBLISH_TZ;
+  const tz = opts?.timezone || publishTz();
   const now = opts?.nowMs ?? Date.now();
 
   const bots: BotPublishRow[] = [];

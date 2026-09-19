@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { GitCompare, Search, X } from "lucide-react";
 import { formatDelta, formatNum, formatWhen } from "@/lib/juicychat/format";
+import { dayKeyInZone, getDisplayTimezone } from "@/lib/juicychat/timezone";
 import type { BotCatalogItem, BotGrowthRow, GrowthAnalysis, JuicyBot } from "@/lib/juicychat/types";
 
 const LS_KEY = "juicy-bot-compare-ids";
@@ -27,7 +28,6 @@ const COLORS = [
   "#fb7185",
   "#34d399",
 ];
-const TZ = "Europe/Madrid";
 
 const tooltipStyle = {
   background: "var(--color-surface)",
@@ -63,19 +63,14 @@ function shortName(name: string, n = 22) {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
-/** YYYY-MM-DD in Europe/Madrid from gmtFirstPublish / gmtCreate. */
-function madridDay(v: string | number | null | undefined): string | null {
+/** YYYY-MM-DD in the lounge timezone from gmtFirstPublish / gmtCreate. */
+function publishedDay(v: string | number | null | undefined): string | null {
   if (v == null || v === "") return null;
   const n = typeof v === "number" ? v : Number(v);
   if (!Number.isFinite(n) || n <= 0) return null;
   const ms = n < 1e12 ? Math.round(n * 1000) : Math.round(n);
   try {
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: TZ,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(ms));
+    return dayKeyInZone(new Date(ms), getDisplayTimezone());
   } catch {
     return null;
   }
@@ -124,7 +119,7 @@ export function BotPerformancePanel({
   const publishById = useMemo(() => {
     const m = new Map<string, string>();
     for (const b of bots) {
-      const d = madridDay(b.gmtFirstPublish) || madridDay(b.gmtCreate);
+      const d = publishedDay(b.gmtFirstPublish) || publishedDay(b.gmtCreate);
       if (d) m.set(b.characterId, d);
     }
     return m;

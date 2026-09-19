@@ -26,6 +26,7 @@ import {
 import { loadNewFeedCached, refreshNewFeed } from "@/lib/juicychat/actions";
 import { DesktopNavLinks, MobileNav } from "@/components/mobile-nav";
 import { formatNum, formatWhen } from "@/lib/juicychat/format";
+import { timezoneCity, getDisplayTimezone } from "@/lib/juicychat/timezone";
 import type { NewFeedCard, NewFeedView } from "@/lib/juicychat/new-feed";
 import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
@@ -149,7 +150,7 @@ function NewFeedPage() {
       <main className="mx-auto max-w-6xl min-w-0 space-y-5 px-4 py-5">
         <p className="text-xs text-muted">
           Manual only — not on Lounge Refresh all, not on scheduled jobs. Each pull is dated
-          (Madrid) and merges into the warehouse so creator volume and tag mix accrue.
+          ({timezoneCity(data?.timezone || getDisplayTimezone())}) and merges into the warehouse so creator volume and tag mix accrue.
         </p>
 
         {error ? (
@@ -182,7 +183,7 @@ function NewFeedPage() {
         ) : (
           <>
             <p className="text-xs text-muted">
-              Snapshot {data?.lastDate} · {formatWhen(data?.lastScrapedAt)} Madrid
+              Snapshot {data?.lastDate} · {formatWhen(data?.lastScrapedAt)} {timezoneCity(data?.timezone || getDisplayTimezone())}
               {data?.firstDate && data.firstDate !== data.lastDate
                 ? ` · accrued ${data.firstDate} → ${data.lastDate}`
                 : ""}
@@ -211,7 +212,7 @@ function NewFeedPage() {
             </section>
 
             {data && data.volume.length > 1 ? (
-              <Panel title="Volume by date" icon={TrendingUp} hint="Each refresh is a Madrid calendar day">
+              <Panel title="Volume by date" icon={TrendingUp} hint={`Each refresh is a ${timezoneCity(data.timezone || getDisplayTimezone())} calendar day`}>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data.volume} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -229,7 +230,7 @@ function NewFeedPage() {
             ) : null}
 
             <div className="grid gap-3 lg:grid-cols-2">
-              <Panel title="When they publish" icon={Clock} hint="First-publish hour, Madrid, accrued catalog">
+              <Panel title="When they publish" icon={Clock} hint={`First-publish hour, ${timezoneCity(data.timezone || getDisplayTimezone())}, accrued catalog`}>
                 <div className="h-44">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={hourData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>

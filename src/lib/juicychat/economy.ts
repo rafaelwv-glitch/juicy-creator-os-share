@@ -11,6 +11,7 @@ import type { JuicyClient } from "./client";
 import type { JuicyBot, LoungeSnapshot } from "./types";
 import { dataPath, ensureDataDir } from "./paths";
 import { dayKey } from "./history";
+import { loungeTimezone } from "./timezone-server";
 
 const FILE = "creator-economy.json";
 const MAX_DAYS = 400;
@@ -360,19 +361,19 @@ async function botSignal(
 export function loadEconomy(): EconomyFile {
   try {
     const p = dataPath(FILE);
-    if (!existsSync(p)) return { version: 1, timezone: "Europe/Madrid", last: null, days: [] };
+    if (!existsSync(p)) return { version: 1, timezone: loungeTimezone(), last: null, days: [] };
     const raw = JSON.parse(readFileSync(p, "utf8")) as EconomyFile;
     if (!raw || !Array.isArray(raw.days)) {
-      return { version: 1, timezone: "Europe/Madrid", last: null, days: [] };
+      return { version: 1, timezone: loungeTimezone(), last: null, days: [] };
     }
     return {
       version: 1,
-      timezone: raw.timezone || "Europe/Madrid",
+      timezone: raw.timezone || loungeTimezone(),
       last: raw.last ?? null,
       days: raw.days,
     };
   } catch {
-    return { version: 1, timezone: "Europe/Madrid", last: null, days: [] };
+    return { version: 1, timezone: loungeTimezone(), last: null, days: [] };
   }
 }
 

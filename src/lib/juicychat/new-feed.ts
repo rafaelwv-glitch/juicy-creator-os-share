@@ -1,7 +1,7 @@
 /**
  * Homepage Characters → New, unfiltered.
  * Manual-only: never called from daily-pull / cron / Lounge Refresh all.
- * Dates are Europe/Madrid. Snapshots accrue in the warehouse.
+ * Dates use the lounge timezone. Snapshots accrue in the warehouse.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { JuicyClient } from "./client";
@@ -9,8 +9,8 @@ import { dayKey } from "./history";
 import { dataPath, ensureDataDir } from "./paths";
 import { loadSession, saveSession } from "./session";
 import type { LoungeSnapshot } from "./types";
+import { loungeTimezone } from "./timezone-server";
 
-const TZ = "Europe/Madrid";
 const FILE = "new-feed.json";
 const PAGE_SIZE = 50;
 /** Dedicated New scrape — deeper than Lounge's ranking scan. */
@@ -76,7 +76,7 @@ export type NewFeedDay = {
 
 export type NewFeedStore = {
   version: 1;
-  timezone: typeof TZ;
+  timezone: string;
   lastScrapedAt: string | null;
   lastDate: string | null;
   lastPages: number;
@@ -111,6 +111,7 @@ export type NewFeedTagShift = {
 };
 
 export type NewFeedView = {
+  timezone: string;
   lastScrapedAt: string | null;
   lastDate: string | null;
   firstDate: string | null;
@@ -139,7 +140,7 @@ function emptyHours(): number[] {
 function emptyStore(): NewFeedStore {
   return {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     lastScrapedAt: null,
     lastDate: null,
     lastPages: 0,
@@ -283,7 +284,7 @@ function madridHour(ms: number): number {
   try {
     const h = Number(
       new Intl.DateTimeFormat("en-GB", {
-        timeZone: TZ,
+        timeZone: loungeTimezone(),
         hour: "2-digit",
         hourCycle: "h23",
       }).format(new Date(ms)),
@@ -297,7 +298,7 @@ function madridHour(ms: number): number {
 function madridWeekday(ms: number): number {
   try {
     const w = new Intl.DateTimeFormat("en-US", {
-      timeZone: TZ,
+      timeZone: loungeTimezone(),
       weekday: "short",
     }).format(new Date(ms));
     const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
@@ -535,7 +536,7 @@ export async function scrapeNewFeed(options?: { maxPages?: number }): Promise<Ne
 
   const store: NewFeedStore = {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     lastScrapedAt: scrapedAt,
     lastDate: date,
     lastPages: pages,
@@ -556,6 +557,7 @@ export async function scrapeNewFeed(options?: { maxPages?: number }): Promise<Ne
 
 export function buildNewFeedView(store: NewFeedStore | null): NewFeedView {
   const empty: NewFeedView = {
+    timezone: loungeTimezone(),
     lastScrapedAt: null,
     lastDate: null,
     firstDate: null,
@@ -654,6 +656,7 @@ export function buildNewFeedView(store: NewFeedStore | null): NewFeedView {
   const dates = days.map((d) => d.date).filter(Boolean);
 
   return {
+    timezone: store.timezone || loungeTimezone(),
     lastScrapedAt: store.lastScrapedAt,
     lastDate: store.lastDate,
     firstDate: dates[0] || null,

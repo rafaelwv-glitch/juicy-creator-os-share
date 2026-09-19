@@ -201,7 +201,9 @@ async function unitFiles(backup) {
     "audit15-queue.json",
     "tag-competition.json",
     "pull-schedule.json",
+    "timezone.json",
     "new-feed.json",
+    "followed-bots.json",
   ];
 
   const browserSet = new Set(BROWSER_FILES);
@@ -212,6 +214,8 @@ async function unitFiles(backup) {
     assert(expectedKv.includes(k), `BROWSER_FILES extra key not in lounge kv ${k}`);
   }
   assert(WAREHOUSE_FILES.includes("rivals-track.json"), "rivals-track in warehouse");
+  assert(WAREHOUSE_FILES.includes("timezone.json"), "timezone.json in warehouse");
+  assert(WAREHOUSE_FILES.includes("followed-bots.json"), "followed-bots.json in warehouse");
   assert(BROWSER_FILES.includes("juicy-session.json"), "session in browser files");
   assert(BROWSER_FILES.includes("grok-hook.json"), "grok-hook in browser files");
 

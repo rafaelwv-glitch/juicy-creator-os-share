@@ -1,3 +1,5 @@
+import { formatWhenInZone, getDisplayTimezone } from "./timezone";
+
 export function formatFull(n: number | null | undefined) {
   if (n == null || Number.isNaN(n)) return "—";
   return Math.round(Number(n)).toLocaleString("en-US");
@@ -43,17 +45,7 @@ export function formatPct(n: number | null | undefined, digits = 0) {
 
 export function formatWhen(iso: string | number | null | undefined) {
   if (iso == null || iso === "") return "—";
-  try {
-    const d = typeof iso === "number" ? new Date(iso) : new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString("en-GB", {
-      timeZone: "Europe/Madrid",
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return String(iso);
-  }
+  return formatWhenInZone(iso, getDisplayTimezone());
 }
 
 export function formatAgo(iso: string | number | null | undefined) {
@@ -83,4 +75,3 @@ export function humanizeConnectError(raw: unknown): string {
   }
   return t || "Request failed";
 }
-

@@ -13,6 +13,7 @@ import { ArrowLeft, Loader2, RefreshCw, TrendingUp, Users } from "lucide-react";
 import { loadFollowersCached, refreshFollowers } from "@/lib/juicychat/actions";
 import { MobileNav, DesktopNavLinks } from "@/components/mobile-nav";
 import { formatDeltaFull, formatFull, formatWhen } from "@/lib/juicychat/format";
+import { timezoneCity, getDisplayTimezone } from "@/lib/juicychat/timezone";
 import type { FollowerAnalysis } from "@/lib/juicychat/followers";
 import { browserCacheReady } from "@/lib/juicychat/browser-sync";
 
@@ -154,7 +155,7 @@ function FollowersPage() {
               <div className="rounded-xl border border-border bg-bg/40 px-3 py-3">
                 <div className="text-[10px] uppercase tracking-wide text-faint">Follow events (today)</div>
                 <div className="mt-1 text-lg font-extrabold">{formatFull(data?.follows1d ?? 0)}</div>
-                <p className="text-[11px] text-muted">Named follows today (Madrid). Net total can lag or drop if people unfollow.</p>
+                <p className="text-[11px] text-muted">Named follows today ({timezoneCity(getDisplayTimezone())}). Net total can lag or drop if people unfollow.</p>
               </div>
               <div className="rounded-xl border border-border bg-bg/40 px-3 py-3">
                 <div className="text-[10px] uppercase tracking-wide text-faint">Follow events (7d)</div>

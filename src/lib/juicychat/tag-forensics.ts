@@ -20,6 +20,7 @@ import { rivalBotsFromEntries } from "./tag-competition";
 import type { HistoryDay, HistoryFile, JuicyBot, LoungeSnapshot } from "./types";
 import { existsSync, readFileSync } from "node:fs";
 import { tagKey } from "./tag-forensics-view";
+import { loungeTimezone } from "./timezone-server";
 
 export type {
   NewFeedBotIn,
@@ -59,7 +60,6 @@ import type {
   TagWhenRow,
 } from "./tag-forensics-view";
 
-const TZ = "Europe/Madrid";
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -717,7 +717,7 @@ export function analyzeTagForensics(input: {
   });
 
   return {
-    timezone: TZ,
+    timezone: loungeTimezone(),
     generatedAt: (input.now || new Date()).toISOString(),
     daysTracked: days.length,
     botCount: botList.length || snapshot?.bots?.length || 0,
@@ -1033,7 +1033,7 @@ export function buildTagForensics(input?: {
 
 export function emptyTagForensics(): TagForensics {
   return {
-    timezone: TZ,
+    timezone: loungeTimezone(),
     generatedAt: new Date().toISOString(),
     daysTracked: 0,
     botCount: 0,

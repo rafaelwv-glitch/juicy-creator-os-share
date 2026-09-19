@@ -4,8 +4,8 @@ import { loadNotifStore, type NotifEvent } from "./notifications";
 import { loadSession, saveSession } from "./session";
 import { liftBaseImmersive, type LoungeSnapshot } from "./types";
 import { dataPath, ensureDataDir } from "./paths";
+import { loungeTimezone } from "./timezone-server";
 
-const TZ = "Europe/Madrid";
 
 function insightsPath() {
   return dataPath("creator-insights.json");
@@ -618,7 +618,7 @@ export async function scrapeCreatorInsights(options?: {
 
   const insights: CreatorInsights = {
     scrapedAt: new Date().toISOString(),
-    timezone: TZ,
+    timezone: loungeTimezone(),
     benefit,
     stats,
     ownCharacterData,

@@ -7,6 +7,8 @@ import { DataToolsPanel } from "@/components/data-tools-panel";
 import { DatabaseStatusPanel } from "@/components/db-status";
 import { GrokHookPanel } from "@/components/grok-hook-panel";
 import { OsFrame, useOsSession } from "@/components/os-frame";
+import { TimezonePanel } from "@/components/timezone-panel";
+import { UpdatePanel } from "@/components/update-panel";
 
 export const Route = createFileRoute("/config")({ component: ConfigPage });
 
@@ -16,6 +18,14 @@ function ConfigPage() {
 
   return (
     <OsFrame tab="config" session={session}>
+      <div className="mb-6">
+        <TimezonePanel />
+      </div>
+
+      <div className="mb-6">
+        <UpdatePanel />
+      </div>
+
       <div className="mb-6">
         <CronConfigPanel />
       </div>

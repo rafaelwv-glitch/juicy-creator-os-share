@@ -5,8 +5,8 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dataPath, ensureDataDir } from "./paths";
-
-export const PULL_TZ = "Europe/Madrid";
+import { loungeTimezone } from "./timezone-server";
+import { timezoneCity, zonedParts } from "./timezone";
 export const SCHEDULE_FILE = "pull-schedule.json";
 /** @deprecated Catch-up no longer uses a short due window. Kept so old imports compile. */
 export const DUE_WINDOW_MIN = 20;
@@ -19,6 +19,7 @@ export const PULL_SOURCE_KEYS = [
   "insights",
   "deep",
   "rivals",
+  "followed",
 ] as const;
 
 export type PullSourceKey = (typeof PULL_SOURCE_KEYS)[number];
@@ -41,7 +42,7 @@ export type PullJob = {
 
 export type PullSchedule = {
   version: 2;
-  timezone: typeof PULL_TZ;
+  timezone: string;
   /** Master pause for every scrape job. Releases still fire. */
   enabled: boolean;
   jobs: PullJob[];
@@ -67,6 +68,7 @@ export const DEFAULT_SOURCES: PullSources = {
   insights: true,
   deep: true,
   rivals: true,
+  followed: true,
 };
 
 export const SOURCE_LABELS: Record<PullSourceKey, { label: string; hint: string }> = {
@@ -76,6 +78,7 @@ export const SOURCE_LABELS: Record<PullSourceKey, { label: string; hint: string 
   insights: { label: "Insights", hint: "Wallet, gifts, discovery feeds" },
   deep: { label: "Ranks & tags", hint: "Leaderboards, tag maps, comment pulse" },
   rivals: { label: "Rivals", hint: "Neighbor roster + MRT" },
+  followed: { label: "Followed bots", hint: "Public cards you pinned on Forensics" },
 };
 
 export const INTERVAL_OPTIONS = [1, 2, 3, 4, 6, 8, 12, 24] as const;
@@ -239,7 +242,7 @@ export function normalizePullSchedule(raw: unknown): PullSchedule {
       : migrateV1(o);
   return {
     version: 2,
-    timezone: PULL_TZ,
+    timezone: loungeTimezone(),
     enabled: o.enabled === false ? false : true,
     jobs,
     lastScheduledAt: last,
@@ -250,7 +253,7 @@ export function normalizePullSchedule(raw: unknown): PullSchedule {
 function cloneDefault(): PullSchedule {
   return {
     version: 2,
-    timezone: PULL_TZ,
+    timezone: loungeTimezone(),
     enabled: true,
     jobs: defaultJobs(),
     lastScheduledAt: null,
@@ -258,50 +261,32 @@ function cloneDefault(): PullSchedule {
   };
 }
 
-function madridParts(ms: number) {
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: PULL_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    hour12: false,
-  });
-  const bag: Record<string, string> = {};
-  for (const p of fmt.formatToParts(new Date(ms))) {
-    if (p.type !== "literal") bag[p.type] = p.value;
-  }
-  const h = Number(bag.hour);
-  const mi = Number(bag.minute);
-  return {
-    h: Number.isFinite(h) ? h % 24 : 0,
-    mi: Number.isFinite(mi) ? mi : 0,
-  };
+function zoneClock(ms: number) {
+  const p = zonedParts(ms, loungeTimezone());
+  return { h: p.h, mi: p.mi };
 }
 
 function minuteFloor(ms: number): number {
   return ms - (ms % 60_000);
 }
 
-/** Most recent HH:MM in Madrid that is <= now, or null if none in the last 36h. */
+/** Most recent HH:MM in the lounge timezone that is <= now, or null if none in the last 36h. */
 export function lastTimeSlot(job: PullJob, now = Date.now()): number | null {
   const start = minuteFloor(now);
   const end = start - 36 * 3_600_000;
   for (let t = start; t >= end; t -= 60_000) {
-    const p = madridParts(t);
+    const p = zoneClock(t);
     if (p.h === job.hour && p.mi === job.minute) return t;
   }
   return null;
 }
 
-/** Next HH:MM in Madrid at or after `from` (inclusive). */
+/** Next HH:MM in the lounge timezone at or after `from` (inclusive). */
 export function nextTimeSlot(job: PullJob, from = Date.now()): number | null {
   const start = minuteFloor(from);
   const end = start + 36 * 3_600_000;
   for (let t = start; t <= end; t += 60_000) {
-    const p = madridParts(t);
+    const p = zoneClock(t);
     if (p.h === job.hour && p.mi === job.minute) return t;
   }
   return null;
@@ -317,7 +302,7 @@ export function jobWhenLabel(job: PullJob): string {
     const n = Math.max(1, job.intervalHours || 12);
     return `Every ${n} hour${n === 1 ? "" : "s"}`;
   }
-  return `${formatPullTime({ hour: job.hour, minute: job.minute })} Madrid`;
+  return `${formatPullTime({ hour: job.hour, minute: job.minute })} ${timezoneCity(loungeTimezone())}`;
 }
 
 export function jobSourceKeys(job: PullJob): PullSourceKey[] {
@@ -385,7 +370,7 @@ export function isJobDue(job: PullJob, now = Date.now()): boolean {
     if (!fired) return true;
     return now - fired >= hours * 3_600_000 - 60_000;
   }
-  // Catch-up: due once the Madrid clock has passed today's (or the latest)
+  // Catch-up: due once the lounge clock has passed today's (or the latest)
   // slot and this job has not run for that occurrence. Late cloud ticks
   // still scrape; a 20-minute window was dropping 05:00 when the tick
   // arrived at 05:45.
@@ -509,7 +494,7 @@ export function packScheduleView(schedule: PullSchedule) {
     upcoming: upcomingRuns(schedule),
     sourceMeta: PULL_SOURCE_KEYS.map((key) => ({ key, ...SOURCE_LABELS[key] })),
     intervalOptions: [...INTERVAL_OPTIONS],
-    timezone: PULL_TZ,
+    timezone: loungeTimezone(),
     tick: "15 min",
     pullTimes: summary.pullTimes,
     depth: summary.depth,

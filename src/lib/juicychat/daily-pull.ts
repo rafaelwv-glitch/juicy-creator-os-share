@@ -14,6 +14,7 @@ import {
   scheduleSummary,
   type PullSources,
 } from "./pull-schedule";
+import { loungeTimezone } from "./timezone-server";
 import { listLoungeUserIdsWithSession, pushUserKv, withUserStore } from "./user-kv";
 import { currentLoungeUserId, dataPath, ensureDataDir } from "./paths";
 import { JuicyClient } from "./client";
@@ -37,16 +38,18 @@ export type CronLogRow = {
   message: string | null;
 };
 
-const TZ = "Europe/Madrid";
 export const PULL_TIMES = DEFAULT_TIMES.map((t) => ({
   hour: t.hour,
   minute: t.minute,
   label: formatPullTime(t),
 }));
 
+/** @deprecated Use nextScheduledPulls. Kept so old imports compile. */
 export function nextMadridPulls(now = Date.now(), count = 2): string[] {
   return nextScheduledPulls(loadPullSchedule(), now, count);
 }
+
+export const nextLoungePulls = nextMadridPulls;
 
 export async function logCronStart(kind: CronKind): Promise<number> {
   try {
@@ -121,7 +124,7 @@ export async function getCloudStatus() {
   const schedule = loadPullSchedule();
   const summary = scheduleSummary(schedule);
   return {
-    timezone: TZ,
+    timezone: loungeTimezone(),
     pullTimes: summary.pullTimes,
     nextPulls: summary.nextPulls,
     schedule,
@@ -422,6 +425,27 @@ export async function runDailyPull(
       }
     } else {
       sources.rivals = { ok: false, error: "skipped — time budget" };
+    }
+
+    if (!want("followed")) {
+      sources.followed = { ok: false, error: "skipped — off" };
+    } else if (need(12_000)) {
+      try {
+        const { loadFollowedBots, refreshAllFollowedBots } = await import("./followed-bots");
+        const before = loadFollowedBots();
+        if (!before.bots.length) {
+          sources.followed = { ok: true, detail: { n: 0 } };
+        } else {
+          const file = await refreshAllFollowedBots();
+          sources.followed = { ok: true, detail: { n: file.bots.length } };
+          details.followed = file.bots.length;
+          await checkpoint();
+        }
+      } catch (e) {
+        sources.followed = { ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    } else {
+      sources.followed = { ok: false, error: "skipped — time budget" };
     }
 
     const dash = await buildCreatorDashboard({

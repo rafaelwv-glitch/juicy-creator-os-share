@@ -20,6 +20,7 @@ import type {
   SpikeRow,
   WeekHeat,
 } from "./briefing-types";
+import { loungeTimezone } from "./timezone-server";
 
 export type {
   ClockBrief,
@@ -36,7 +37,6 @@ export type {
 const FILE = "audit15-queue.json";
 const MAX_DAYS = 400;
 const MAX_EVENTS = 400;
-const TZ = "Europe/Madrid";
 
 const NEW_ENGINE_AGE = 21;
 const OLD_COMEDY_AGE = 40;
@@ -78,7 +78,7 @@ type Audit15File = {
 function emptyFile(): Audit15File {
   return {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     lastAt: null,
     firstSeen: {},
     days: [],
@@ -413,7 +413,7 @@ export function persistAudit15(snapshot: LoungeSnapshot | null | undefined): Aud
 
   const next: Audit15File = {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     lastAt: nowIso,
     firstSeen,
     days: days.slice(-MAX_DAYS),

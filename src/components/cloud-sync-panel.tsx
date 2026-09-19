@@ -4,6 +4,7 @@ import { getCloudLoungeStatus } from "@/lib/juicychat/actions";
 import { postCloudRefresh } from "@/lib/juicychat/cloud-refresh";
 import { formatWhen } from "@/lib/juicychat/format";
 import { getBrowserStoreId, withBrowserHeaders } from "@/lib/juicychat/browser-store";
+import { getDisplayTimezone } from "@/lib/juicychat/timezone";
 
 type Status = Awaited<ReturnType<typeof getCloudLoungeStatus>>;
 
@@ -26,6 +27,8 @@ export function CloudSyncPanel({ className = "" }: { className?: string }) {
       setMsg(e instanceof Error ? e.message : String(e));
       setOk(false);
     });
+    const onTz = () => void reload().catch(() => undefined);
+    window.addEventListener("jl-timezone-changed", onTz);
     void fetch("/api/lounge/pair", {
       credentials: "include",
       headers: withBrowserHeaders(),
@@ -35,6 +38,7 @@ export function CloudSyncPanel({ className = "" }: { className?: string }) {
         if (d?.pair) setPair(d.pair);
       })
       .catch(() => undefined);
+    return () => window.removeEventListener("jl-timezone-changed", onTz);
   }, [reload]);
 
   const onPull = async () => {
@@ -84,7 +88,7 @@ export function CloudSyncPanel({ className = "" }: { className?: string }) {
           <h2 className="text-sm font-semibold">Cloud lounge</h2>
         </div>
         <span className="text-[11px] text-muted">
-          Europe/Madrid · {(status?.pullTimes || []).join(" · ") || "schedule on Config"}
+          {status?.timezone || getDisplayTimezone()} · {(status?.pullTimes || []).join(" · ") || "schedule on Config"}
         </span>
       </div>
       <p className="mb-3 text-xs text-muted">

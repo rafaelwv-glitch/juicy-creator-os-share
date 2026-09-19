@@ -516,7 +516,7 @@ Lounge default scrape payload:
 
 `sortName` values used here: `popular` · `recent` · `trending` · `immersive` · `new` · `editor` · `chatCount`.
 
-**New-feed analytics (Creator OS):** homepage Characters → New is `getCharacterList` with `sortName: "new"`, empty tags, `gender: null`, `visibility: null`, `nsfw: 1`. Dedicated `/new-feed` tab, **manual refresh only** — not a cron source, not Lounge Refresh all. Warehouse file `new-feed.json` (dated Madrid snapshots + accrued catalog). Photos/thumbs are dropped; titles, creator, publish time, tags, and stats are kept. Each New scrape also `GET getLaunchData` and stores `officialTags` / `officialTagsPrev` for event-watch (new official tags on other people's New cards, and tags on New that are not in the catalog yet).
+**New-feed analytics (Creator OS):** homepage Characters → New is `getCharacterList` with `sortName: "new"`, empty tags, `gender: null`, `visibility: null`, `nsfw: 1`. Dedicated `/new-feed` tab, **manual refresh only** — not a cron source, not Lounge Refresh all. Warehouse file `new-feed.json` (dated lounge-timezone snapshots + accrued catalog). Photos/thumbs are dropped; titles, creator, publish time, tags, and stats are kept. Each New scrape also `GET getLaunchData` and stores `officialTags` / `officialTagsPrev` for event-watch (new official tags on other people's New cards, and tags on New that are not in the catalog yet).
 
 **Dashboard signals (warehouse-derived, no extra scrape):** pond (last 72h `gmtFirstPublish` by tag: n / median / p90 + clone-count of coming-home / argument / home-early), rival 48h velocity (history + MRT, not lifetime chats), own mix heatmap (last 14 ships × gender/rating/top tags), coin field (mapped VIP coins **and leftover unmapped keys** such as Second Best), variety-health (favorites in the last 7 days across ≥3 lanes), event watch (official tag catalog vs New cards). Rebuilt on lounge load from existing files.
 
@@ -954,7 +954,7 @@ Auth: §3.1 cron gate.
 
 | Method | Path | Schedule (UTC, `vercel.json`) | Does |
 |---|---|---|---|
-| GET/POST | `/api/cron/pull` | `0 3 * * *` and `55 21 * * *` (05:00 / 23:55 Europe/Madrid) | `runDailyPullAllAccounts` |
+| GET/POST | `/api/cron/pull` | named jobs in the lounge timezone (default 05:00 / 23:55) | `runDailyPullAllAccounts` |
 | GET/POST | `/api/cron/publish` | not in `vercel.json` (GitHub Action / dashboard) | `runDuePublishesOnly` |
 
 ```bash

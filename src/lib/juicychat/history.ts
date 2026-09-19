@@ -11,19 +11,19 @@ import type {
 import { liftBaseImmersive } from "./types";
 import { currentLoungeUserId, dataPath, ensureDataDir } from "./paths";
 import { repairHistory } from "./repair";
+import { loungeTimezone } from "./timezone-server";
 
 const MAX_DAYS = 400;
-const TZ = "Europe/Madrid";
 
 function historyPath() {
   return dataPath("growth-history.json");
 }
 
-/** Calendar date YYYY-MM-DD in Europe/Madrid */
+/** Calendar date YYYY-MM-DD in the lounge timezone */
 export function dayKey(iso: string | Date = new Date()): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -133,21 +133,21 @@ function subtractBot(
 export function loadHistory(): HistoryFile {
   try {
     if (!existsSync(historyPath())) {
-      return { version: 1, timezone: TZ, days: [] };
+      return { version: 1, timezone: loungeTimezone(), days: [] };
     }
     const raw = JSON.parse(readFileSync(historyPath(), "utf8")) as HistoryFile;
     if (!raw || !Array.isArray(raw.days)) {
-      return { version: 1, timezone: TZ, days: [] };
+      return { version: 1, timezone: loungeTimezone(), days: [] };
     }
     return repairHistory({
       version: 1,
-      timezone: raw.timezone || TZ,
+      timezone: raw.timezone || loungeTimezone(),
       days: raw.days,
       lastScrape: raw.lastScrape,
       previousScrape: raw.previousScrape,
     });
   } catch {
-    return { version: 1, timezone: TZ, days: [] };
+    return { version: 1, timezone: loungeTimezone(), days: [] };
   }
 }
 
@@ -184,7 +184,7 @@ export function recordSnapshot(snap: LoungeSnapshot): HistoryFile {
 
   const toSave: HistoryFile = {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     days: file.days,
     lastScrape: current,
     previousScrape:
@@ -344,7 +344,7 @@ export function analyzeGrowth(file?: HistoryFile): GrowthAnalysis {
 
   return {
     daysTracked: days.length,
-    timezone: hist.timezone || TZ,
+    timezone: hist.timezone || loungeTimezone(),
     latestDate: latest?.date ?? null,
     previousDate: previousDay?.date ?? null,
     latestScrapedAt: latest?.scrapedAt ?? null,

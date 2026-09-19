@@ -1,7 +1,7 @@
 /**
  * Precise follower count + daily/weekly trend.
  * Prefer a consensus of live sources over a single field that can get stacked.
- * One row per Madrid day. Counts are levels, never summed.
+ * One row per lounge-timezone day. Counts are levels, never summed.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { JuicyClient } from "./client";
@@ -16,9 +16,9 @@ import {
   type FollowerPoint,
 } from "./repair";
 import { loadSession } from "./session";
+import { loungeTimezone } from "./timezone-server";
 
 
-const TZ = "Europe/Madrid";
 const FILE = "followers-history.json";
 
 export type { FollowerPoint };
@@ -62,7 +62,7 @@ type FollowerFile = RepairedFile & { sample: FollowerSample[] };
 function dayKey(iso?: string): string {
   const d = iso ? new Date(iso) : new Date();
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
+    timeZone: loungeTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -103,7 +103,7 @@ function uniqueSample(sample: FollowerSample[]): FollowerSample[] {
 }
 
 function emptyFile(): FollowerFile {
-  return { version: 1, timezone: TZ, points: [], sample: [], last: null, sources: {} };
+  return { version: 1, timezone: loungeTimezone(), points: [], sample: [], last: null, sources: {} };
 }
 
 function saveFile(file: FollowerFile) {

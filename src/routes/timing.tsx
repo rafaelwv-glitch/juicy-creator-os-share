@@ -32,6 +32,7 @@ import type {
   TagTimingRow,
 } from "@/lib/juicychat/notifications";
 import { browserCacheReady } from "@/lib/juicychat/browser-sync";
+import { formatWhenInZone, getDisplayTimezone } from "@/lib/juicychat/timezone";
 
 export const Route = createFileRoute("/timing")({ component: TimingDashboard });
 
@@ -48,15 +49,7 @@ function formatNum(n: number | null | undefined) {
 
 function formatWhen(iso: string | null | undefined) {
   if (!iso) return "never";
-  try {
-    return new Date(iso).toLocaleString("en-GB", {
-      timeZone: "Europe/Madrid",
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
+  return formatWhenInZone(iso, getDisplayTimezone());
 }
 
 function heatColor(total: number, max: number): string {
@@ -194,7 +187,7 @@ function TimingDashboard() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
               <Clock className="size-3.5 text-primary" />
-              Best time to post · {analysis?.timezone ?? "Europe/Madrid"}
+              Best time to post · {analysis?.timezone ?? getDisplayTimezone()}
             </div>
             <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
               Timing <span className="text-muted">dashboard</span>

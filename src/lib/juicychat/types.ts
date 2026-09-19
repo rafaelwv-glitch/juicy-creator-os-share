@@ -145,7 +145,7 @@ export function liftBaseImmersive(b: {
 }
 
 export type HistoryDay = {
-  date: string; // YYYY-MM-DD (Europe/Madrid)
+  date: string; // YYYY-MM-DD (lounge timezone)
   scrapedAt: string;
   totals: MetricTotals;
   bots: Record<string, BotMetricPoint>;

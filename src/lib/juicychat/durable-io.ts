@@ -23,7 +23,9 @@ export const LOUNGE_KV_FILES = [
   "audit15-queue.json",
   "tag-competition.json",
   "pull-schedule.json",
+  "timezone.json",
   "new-feed.json",
+  "followed-bots.json",
 ] as const;
 
 const FILE_SET = new Set<string>(LOUNGE_KV_FILES);

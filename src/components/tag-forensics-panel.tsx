@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { formatDelta, formatNum, formatPct } from "@/lib/juicychat/format";
+import { timezoneCity, getDisplayTimezone } from "@/lib/juicychat/timezone";
 import {
   comboMatchesQuery,
   suggestTags,
@@ -642,7 +643,7 @@ export function TagForensicsPanel({ forensic }: { forensic: TagForensics | null 
                 </tbody>
               </table>
               <p className="mt-2 text-[11px] text-faint">
-                New-feed cards per Madrid day. Tracked share is you + stalked neighbours on that
+                New-feed cards per {timezoneCity(getDisplayTimezone())} day. Tracked share is you + stalked neighbours on that
                 tag. Other names come from the New warehouse catalog.
               </p>
             </div>

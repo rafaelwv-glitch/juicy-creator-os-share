@@ -1,6 +1,7 @@
 /** Timestamped lounge report for GitHub → Grok publish advisor. */
 import type { JuicyBot, LoungeSnapshot, GrowthAnalysis } from "./types";
 import { classifyBot, toQueueRow, type PublishStatus } from "./publish-bots";
+import { loungeTimezone } from "./timezone-server";
 
 function clip(s: string, n: number) {
   const t = s.replace(/\s+/g, " ").trim();
@@ -73,7 +74,7 @@ export function buildLoungeReport(opts: {
   return {
     schema: "juicy-lounge-report/v1",
     generatedAt: new Date().toISOString(),
-    timezone: opts.timezone || "Europe/Madrid",
+    timezone: opts.timezone || loungeTimezone(),
     appVersion: opts.appVersion,
     creator: {
       userId: snap?.profile?.userId || snap?.userId || null,
@@ -103,6 +104,6 @@ export function buildLoungeReport(opts: {
       chats: b.chatCount || 0,
       likes: b.likeCount || 0,
     })),
-    note: "Suggest publish date/time in Europe/Madrid per unpublished bot using tags/genre/topic. Pending release first. Stagger same-tag drops.",
+    note: "Suggest publish date/time in the lounge timezone per unpublished bot using tags/genre/topic. Pending release first. Stagger same-tag drops.",
   };
 }

@@ -4,8 +4,8 @@ import { loadSession } from "./session";
 import type { LoungeSnapshot } from "./types";
 import { dataPath, ensureDataDir } from "./paths";
 import { repairNotifs } from "./repair";
+import { loungeTimezone } from "./timezone-server";
 
-const TZ = "Europe/Madrid";
 
 function storePath() {
   return dataPath("notification-events.json");
@@ -157,7 +157,7 @@ export function loadNotifStore(): NotifStore {
     if (!existsSync(storePath())) {
       return {
         version: 1,
-        timezone: TZ,
+        timezone: loungeTimezone(),
         events: [],
         lastScrapedAt: null,
         lastApiTotal: null,
@@ -168,7 +168,7 @@ export function loadNotifStore(): NotifStore {
     const raw = JSON.parse(readFileSync(storePath(), "utf8")) as NotifStore;
     return repairNotifs({
       version: 1,
-      timezone: raw.timezone || TZ,
+      timezone: raw.timezone || loungeTimezone(),
       events: Array.isArray(raw.events) ? raw.events : [],
       lastScrapedAt: raw.lastScrapedAt ?? null,
       lastApiTotal: raw.lastApiTotal ?? null,
@@ -178,7 +178,7 @@ export function loadNotifStore(): NotifStore {
   } catch {
     return {
       version: 1,
-      timezone: TZ,
+      timezone: loungeTimezone(),
       events: [],
       lastScrapedAt: null,
       lastApiTotal: null,
@@ -194,7 +194,7 @@ function saveNotifStore(store: NotifStore) {
   writeFileSync(storePath(), JSON.stringify(next), "utf8");
 }
 
-function partsInTz(ts: number, timeZone = TZ) {
+function partsInTz(ts: number, timeZone = loungeTimezone()) {
   const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone,
     weekday: "short",
@@ -269,7 +269,7 @@ function mapMessage(raw: Record<string, unknown>): NotifEvent | null {
 }
 
 export type ScrapeNotifOptions = {
-  /** How many calendar days back to *fetch* from the live feed (Madrid). Default 30. Stored events are never pruned. */
+  /** How many calendar days back to *fetch* from the live feed (lounge timezone). Default 30. Stored events are never pruned. */
   lookbackDays?: number;
   /** Max API pages (pageSize 100). Default 150. */
   maxPages?: number;
@@ -362,7 +362,7 @@ export async function scrapeNotifications(
 
   const next: NotifStore = {
     version: 1,
-    timezone: TZ,
+    timezone: loungeTimezone(),
     events,
     lastScrapedAt: new Date().toISOString(),
     lastApiTotal: apiTotal,
@@ -515,7 +515,7 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
     if (!raw || typeof raw !== "object") continue;
     const ev = raw as NotifEvent;
     const characterId = String(ev.characterId || ev.characterName || "unknown");
-    addToGrid(grid, { ...ev, characterId }, s?.timezone || TZ);
+    addToGrid(grid, { ...ev, characterId }, s?.timezone || loungeTimezone());
     if (ev.kind) byKind[ev.kind] = (byKind[ev.kind] || 0) + 1;
     if (ev.kind === "like") likeCount++;
     else if (ev.kind === "favorite") favoriteCount++;
@@ -539,7 +539,7 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
     }
     if (ev.kind === "like") row.likes++;
     else if (ev.kind === "favorite") row.favorites++;
-    addToGrid(row.grid, { ...ev, characterId }, s?.timezone || TZ);
+    addToGrid(row.grid, { ...ev, characterId }, s?.timezone || loungeTimezone());
     if (ev.characterName) row.name = botMeta.get(characterId)?.name || ev.characterName;
   }
 
@@ -624,7 +624,7 @@ export function analyzeTiming(store?: NotifStore): TimingAnalysis {
     .sort((a, b) => b.total - a.total);
 
   return {
-    timezone: s?.timezone || TZ,
+    timezone: s?.timezone || loungeTimezone(),
     eventCount: events.length,
     likeCount,
     favoriteCount,
