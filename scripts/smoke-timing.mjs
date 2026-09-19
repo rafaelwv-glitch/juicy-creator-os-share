@@ -3,6 +3,8 @@
  * Repro the Timing crash: sample events have no characterId, and the
  * dashboard used to call `.slice` on undefined. Runs analyzeTiming against
  * that shape plus empty / garbage stores.
+ *
+ * Isolated Vite (configFile: false) so this never locks the live PGLite.
  */
 import { createServer } from "vite";
 import { dirname, join } from "node:path";
@@ -33,9 +35,11 @@ function assert(cond, msg) {
 async function main() {
   const vite = await createServer({
     root,
+    configFile: false,
     server: { middlewareMode: true },
     appType: "custom",
     logLevel: "error",
+    resolve: { alias: { "@": join(root, "src") } },
   });
   try {
     const mod = await vite.ssrLoadModule("/src/lib/juicychat/notifications.ts");
