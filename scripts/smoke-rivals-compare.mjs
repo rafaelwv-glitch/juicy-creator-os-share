@@ -61,9 +61,11 @@ function snap(id, name, bots) {
 async function main() {
   const vite = await createServer({
     root,
+    configFile: false,
     server: { middlewareMode: true },
     appType: "custom",
     logLevel: "error",
+    resolve: { alias: { "@": join(root, "src") } },
   });
   try {
     const mrt = await vite.ssrLoadModule("/src/lib/juicychat/rival-mrt.ts");

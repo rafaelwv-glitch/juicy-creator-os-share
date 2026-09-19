@@ -15,7 +15,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit || true
-      - run: node scripts/smoke-local-only.mjs
+      - run: npm run smoke:qa
       - run: npm run smoke
         env:
           VITE_AUTH_ENABLED: "false"
