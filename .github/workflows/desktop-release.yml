@@ -32,7 +32,6 @@ jobs:
             release/*.AppImage
             release/*.tar.gz
             release/latest-linux.yml
-            release/latest-linux.yaml
           if-no-files-found: error
       - name: Attach Linux packages to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -42,7 +41,14 @@ jobs:
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes || true
           shopt -s nullglob
-          files=(release/*.AppImage release/Juicy-Creator-OS-*.tar.gz release/latest-linux.yml)
+          files=(release/*.AppImage release/Juicy-Creator-OS-*.tar.gz)
+          if [[ -f release/latest-linux.yml ]]; then
+            files+=(release/latest-linux.yml)
+          fi
+          if (( ${#files[@]} == 0 )); then
+            echo "no linux packages in release/" >&2
+            exit 1
+          fi
           gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
   windows:
     runs-on: windows-latest
@@ -72,7 +78,6 @@ jobs:
             release/*.exe
             release/*.zip
             release/latest.yml
-            release/latest.yaml
           if-no-files-found: error
       - name: Attach Windows packages to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
